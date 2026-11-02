@@ -2,6 +2,8 @@
 
 # 视频工坊 FunVideo
 
+![视频工坊界面](docs/screenshots/home.png)
+
 基于 [uTools FFmpeg 扩展](https://www.u-tools.cn/docs/api-reference/ffmpeg.html)的本地批量视频处理插件。支持压缩、时长与画面裁剪、尺寸与格式转换、图片水印、变速、转 GIF、旋转翻转、提取封面、定时抽帧，以及提取音频、静音和调整音量。
 
 ## 使用
