@@ -52,7 +52,7 @@
 
 ## 开发与打包
 
-界面使用原生 HTML/CSS/JavaScript，无前端构建依赖。图标源于 [farfarfun 品牌仓库](https://github.com/farfarfun/.github/tree/master/brand)的统一生成器。`utools/preload.js` 负责文件访问与调用 `utools.runFFmpeg()`，`utools/tasks.js` 负责生成参数。`sh build.sh` 是统一检查入口，运行语法检查、测试并核对打包资源；GitHub Actions 调用它，再执行 FFmpeg 集成测试和 UPXS 打包。本工作区不在本机运行构建、测试或打包。
+界面使用原生 HTML/CSS/JavaScript，无前端构建依赖。图标源于 [farfarfun 品牌仓库](https://github.com/farfarfun/.github/tree/master/brand)的统一生成器。`utools/preload.js` 负责文件访问与调用 `utools.runFFmpeg()`，`utools/tasks.js` 负责生成参数。`sh build.sh` 是统一检查入口，运行语法检查、测试并核对打包资源；设置 `RUN_FFMPEG_TEST=1` 时还会运行 FFmpeg 集成测试。GitHub Actions 通过此入口检查插件并调用组织工具打包 UPXS；本工作区不在本机运行构建、测试或打包。
 
 `identity.json` 记录该插件的官方 ID `zyynr2j3`。组织 Secrets `UTOOLS_MID`、`UTOOLS_UID`、`UTOOLS_CELLPHONE` 可用时，CI 会调用组织现有的 `utools-devtools` 生成 UPXS。不要把私密身份文件提交进仓库。
 

@@ -13,3 +13,6 @@ for (const name of [plugin.main, plugin.preload, plugin.logo, 'app.js', 'style.c
   if (!fs.existsSync(file) || !fs.statSync(file).isFile()) throw new Error(`Missing ${file}`)
 }
 JS
+if [ "${RUN_FFMPEG_TEST:-0}" = 1 ]; then
+  npm run test:ffmpeg
+fi

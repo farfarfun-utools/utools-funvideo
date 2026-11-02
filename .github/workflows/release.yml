@@ -30,15 +30,16 @@ jobs:
             if (!process.env[name]) throw new Error(`Missing organization secret: ${name}`)
           }
           JS
-      - name: Check plugin
-        run: sh build.sh
-      - name: Check FFmpeg processing
+      - name: Prepare FFmpeg
         run: |
           if ! command -v ffmpeg >/dev/null; then
             sudo apt-get update
             sudo apt-get install -y ffmpeg
           fi
-          npm run test:ffmpeg
+      - name: Check and build plugin
+        run: sh build.sh
+        env:
+          RUN_FFMPEG_TEST: '1'
       - name: Set package filename
         run: |
           version=$(node -p "require('./package.json').version")
