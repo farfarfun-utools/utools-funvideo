@@ -12,7 +12,7 @@
 
 界面使用原生 HTML/CSS/JavaScript，无前端构建依赖。`utools/preload.js` 负责文件访问与调用 `utools.runFFmpeg()`，`utools/tasks.js` 负责生成参数。GitHub Actions 执行语法检查、测试和开发目录打包；本工作区不在本机运行构建、测试或打包。
 
-`identity.json` 的 `pluginId` 留空，因为新插件尚未在 uTools 官方开发者工具注册。获得该插件的官方 ID 后填入；组织 Secrets `UTOOLS_MID`、`UTOOLS_UID`、`UTOOLS_CELLPHONE` 可用时，CI 才会调用组织现有的 `utools-devtools` 生成 UPXS。不要使用其他插件的 ID 或把私密身份文件提交进仓库。
+`identity.json` 记录该插件的官方 ID `zyynr2j3`。组织 Secrets `UTOOLS_MID`、`UTOOLS_UID`、`UTOOLS_CELLPHONE` 可用时，CI 会调用组织现有的 `utools-devtools` 生成 UPXS。不要把私密身份文件提交进仓库。
 
 ## 许可
 
