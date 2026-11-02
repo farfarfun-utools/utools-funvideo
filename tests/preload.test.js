@@ -11,13 +11,30 @@ const source = fs.readFileSync(preloadPath, 'utf8')
 
 function bridge(runFFmpeg, getPathForFile = file => file.path) {
   const listeners = {}
+  const tools = new Map()
   const window = { addEventListener(name, callback) { listeners[name] = callback } }
-  const utools = { onPluginEnter() {}, runFFmpeg }
+  const utools = { onPluginEnter() {}, runFFmpeg, registerTool: (name, handler) => tools.set(name, handler) }
   const requireFromPreload = createRequire(preloadPath)
   const requireModule = name => name === 'electron' ? { webUtils: { getPathForFile } } : requireFromPreload(name)
   vm.runInNewContext(source, { window, utools, require: requireModule }, { filename: preloadPath })
-  return { api: window.funvideo, listeners }
+  return { api: window.funvideo, listeners, tools }
 }
+
+test('AI 加入队列前校验所有视频，不自动执行 FFmpeg', t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'funvideo-ai-'))
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }))
+  const video = path.join(directory, 'clip.mp4')
+  fs.writeFileSync(video, 'video bytes')
+  const runFFmpeg = () => { throw new Error('不应自动处理') }
+  const { api, tools } = bridge(runFFmpeg)
+  const queued = []
+  api.onFiles(paths => queued.push(...paths))
+  const tool = tools.get('queue_videos')
+  assert.equal(tool({ paths: [video] }).queued[0].name, 'clip.mp4')
+  assert.deepEqual(queued, [video])
+  assert.throws(() => tool({ paths: [video, path.join(directory, 'missing.mp4')] }))
+  assert.deepEqual(queued, [video])
+})
 
 test('a completed job preserves the source and never replaces an existing output', async t => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'funvideo-test-'))

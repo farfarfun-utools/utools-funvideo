@@ -10,6 +10,10 @@
 
 当前 `main` 分支正在开发下一版；替换背景音乐已进入开发版，尚未包含在 `v0.4.0` 安装包中。
 
+## AI / MCP 工具
+
+`queue_videos` 校验 1 至 100 个本机视频绝对路径并加入待处理队列。工具只返回文件名和大小，不读取视频内容，也不自动运行 FFmpeg 或写文件；用户仍需在插件中选择操作。需 uTools 8 的工具能力，第三方 Agent 还需由用户开启 uTools MCP 服务。
+
 ## 使用
 
 在 uTools 开发者工具中选择 `utools/plugin.json` 导入开发版，或从 GitHub Actions 的 `utools-funvideo-developer-files` 下载完整插件目录后导入。输入“视频工坊”进入，也可在 uTools 中选中视频文件后使用“用视频工坊处理”。添加视频、选择处理方式，然后开始处理；输出位置可从右上角设置另选。首次使用时，uTools 会引导安装 FFmpeg 扩展。
