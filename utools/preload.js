@@ -2,7 +2,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { randomUUID } = require('node:crypto')
 const { fileURLToPath } = require('node:url')
-const { VIDEO_EXTENSIONS, validateInput, outputName, buildArgs } = require('./tasks')
+const { VIDEO_EXTENSIONS, MUSIC_EXTENSIONS, validateInput, outputName, buildArgs } = require('./tasks')
 
 const enterQueue = []
 let enterHandler
@@ -54,6 +54,13 @@ function checkedFile(file) {
   const info = fs.statSync(file)
   if (!info.isFile()) throw new Error('输入必须是文件')
   return { path: file, name: path.basename(file), size: info.size }
+}
+
+function checkedMusic(file) {
+  if (typeof file !== 'string' || !path.isAbsolute(file) || !MUSIC_EXTENSIONS.has(path.extname(file).toLowerCase())) throw new Error('请选择受支持的背景音乐文件')
+  try { if (fs.statSync(file).isFile()) return file }
+  catch {}
+  throw new Error('请选择有效的背景音乐文件')
 }
 
 function publishOutput(temporaryFile, directory, name) {
@@ -118,6 +125,10 @@ window.funvideo = {
     if (!stat.isFile() || stat.size > 32 * 1024 * 1024) throw new Error('水印图片必须是 32 MB 以内的文件')
     return selected
   },
+  chooseMusic() {
+    const selected = utools.showOpenDialog({ title: '选择背景音乐', properties: ['openFile'], filters: [{ name: '音频文件', extensions: [...MUSIC_EXTENSIONS].map(ext => ext.slice(1)) }] })?.[0]
+    return selected ? checkedMusic(selected) : null
+  },
   createBatchOutput: outputDirectory,
   async runJob(job, onProgress) {
     if (active) throw new Error('已有任务正在处理')
@@ -127,6 +138,7 @@ window.funvideo = {
       const image = job.options?.image
       if (typeof image !== 'string' || !path.isAbsolute(image) || !fs.statSync(image).isFile() || fs.statSync(image).size > 32 * 1024 * 1024) throw new Error('请选择有效的水印图片')
     }
+    if (job.operation === 'audio' && job.options?.mode === 'replace') checkedMusic(job.options.music)
     const outputDir = job.outputDir
     if (typeof outputDir !== 'string' || !path.isAbsolute(outputDir) || !fs.statSync(outputDir).isDirectory()) throw new Error('请选择有效的输出文件夹')
     const name = outputName(job.input, job.operation, job.options)

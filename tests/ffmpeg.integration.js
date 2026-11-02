@@ -36,4 +36,10 @@ test('GIF, rotation and audio gain produce playable outputs', t => {
   const frames = path.join(directory, 'frame_%04d.jpg')
   ffmpeg(buildArgs({ input, operation: 'frames', options: { interval: 0.2, count: 3 } }, frames))
   assert.equal(fs.readdirSync(directory).filter(file => /^frame_\d{4}\.jpg$/.test(file)).length, 3)
+
+  const music = path.join(directory, 'music.wav')
+  ffmpeg(['-hide_banner', '-loglevel', 'error', '-f', 'lavfi', '-i', 'sine=frequency=880:sample_rate=44100', '-t', '0.3', music])
+  const replaced = path.join(directory, 'replaced.mp4')
+  ffmpeg(buildArgs({ input: path.join(directory, 'silent.mp4'), operation: 'audio', options: { mode: 'replace', music } }, replaced))
+  assert.ok(fs.statSync(replaced).size > 0)
 })

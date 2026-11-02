@@ -26,6 +26,7 @@ let lastBatchDir = ''
 let running = false
 let stopRequested = false
 let watermarkPath = ''
+let musicPath = ''
 const operationNames = { compress: '批量压缩视频', trim: '按时间裁剪', resize: '调整画面尺寸', convert: '转换容器格式', animate: '导出 GIF 动图', transform: '旋转或翻转画面', audio: '提取或调整音频', crop: '裁剪画面区域', watermark: '叠加图片水印', cover: '提取单张封面', speed: '调整播放速度', frames: '定时提取画面' }
 
 function icon(name) {
@@ -149,7 +150,8 @@ function readOptions() {
       const mode = document.querySelector('#audio-mode').value
       const level = Number(document.querySelector('#audio-level').value)
       if (mode === 'gain' && (!Number.isFinite(level) || level < 0.25 || level > 4)) throw new Error('音量倍数须在 0.25 至 4 之间')
-      return { mode, level }
+      if (mode === 'replace' && !musicPath) throw new Error('请先选择背景音乐')
+      return { mode, level, music: mode === 'replace' ? musicPath : undefined }
     }
     case 'crop': {
       const ids = ['crop-x', 'crop-y', 'crop-width', 'crop-height']
@@ -221,7 +223,7 @@ elements.operation.addEventListener('change', () => {
   operation = elements.operation.value
   elements.operationDescription.textContent = operationNames[operation]
   document.querySelectorAll('[data-for]').forEach(item => { item.hidden = item.dataset.for !== operation })
-  document.querySelector('.workspace').classList.toggle('long-parameters', operation === 'watermark')
+  document.querySelector('.workspace').classList.toggle('long-parameters', operation === 'watermark' || (operation === 'audio' && document.querySelector('#audio-mode').value === 'replace'))
   syncToolnav()
 })
 const toolGroups = [...elements.operation.querySelectorAll('optgroup')]
@@ -272,12 +274,21 @@ function syncToolnav() {
 syncToolnav()
 document.querySelector('#audio-mode').addEventListener('change', event => {
   document.querySelector('#gain-setting').hidden = event.target.value !== 'gain'
+  document.querySelector('#music-setting').hidden = event.target.value !== 'replace'
+  document.querySelector('.workspace').classList.toggle('long-parameters', event.target.value === 'replace')
 })
 document.querySelector('#choose-watermark').addEventListener('click', () => {
   if (!bridge) return
   try {
     const selected = bridge.chooseWatermark()
     if (selected) { watermarkPath = selected; document.querySelector('#watermark-file').textContent = selected; document.querySelector('#watermark-file').title = selected }
+  } catch (error) { message(error.message, true) }
+})
+document.querySelector('#choose-music').addEventListener('click', () => {
+  if (!bridge) return
+  try {
+    const selected = bridge.chooseMusic()
+    if (selected) { musicPath = selected; document.querySelector('#music-file').textContent = selected.split(/[\\/]/).pop(); document.querySelector('#music-file').title = selected }
   } catch (error) { message(error.message, true) }
 })
 
@@ -322,6 +333,7 @@ else {
   document.querySelector('#add-empty').disabled = true
   elements.output.disabled = true
   document.querySelector('#choose-watermark').disabled = true
+  document.querySelector('#choose-music').disabled = true
   message('请在 uTools 中打开插件以选择和处理本地视频')
 }
 elements.resetOutput.disabled = true

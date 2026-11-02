@@ -63,6 +63,17 @@ test('failed jobs remove partial outputs', async t => {
   assert.deepEqual(fs.readdirSync(batchDir), [])
 })
 
+test('replacement music must be an existing audio file', async t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'funvideo-music-'))
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }))
+  const input = path.join(directory, 'clip.mp4')
+  fs.writeFileSync(input, 'source')
+  const { api } = bridge(() => { throw new Error('FFmpeg must not start') })
+  const batchDir = api.createBatchOutput(directory, input)
+  await assert.rejects(api.runJob({ input, outputDir: batchDir, operation: 'audio', options: { mode: 'replace', music: path.join(directory, 'missing.mp3') } }), /背景音乐/)
+  await assert.rejects(api.runJob({ input, outputDir: batchDir, operation: 'audio', options: { mode: 'replace', music: directory } }), /背景音乐/)
+})
+
 test('pasting a copied video file adds it to the queue', t => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'funvideo-test-'))
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }))

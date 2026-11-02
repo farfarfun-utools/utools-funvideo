@@ -4,9 +4,11 @@
 
 ![视频工坊界面](docs/screenshots/home.png)
 
-基于 [uTools FFmpeg 扩展](https://www.u-tools.cn/docs/api-reference/ffmpeg.html)的本地批量视频处理插件。支持压缩、时长与画面裁剪、尺寸与格式转换、图片水印、变速、转 GIF、旋转翻转、提取封面、定时抽帧，以及提取音频、静音和调整音量。
+基于 [uTools FFmpeg 扩展](https://www.u-tools.cn/docs/api-reference/ffmpeg.html)的本地批量视频处理插件。支持压缩、时长与画面裁剪、尺寸与格式转换、图片水印、变速、转 GIF、旋转翻转、提取封面、定时抽帧，以及提取音频、静音、调整音量和替换背景音乐。
 
 从 [v0.4.0 Release](https://github.com/farfarfun-utools/utools-funvideo/releases/tag/v0.4.0) 下载 `utools-funvideo-0.4.0.upxs`，导入 uTools 安装。也可在 CI 中下载开发版插件目录。
+
+当前 `main` 分支正在开发下一版；替换背景音乐已进入开发版，尚未包含在 `v0.4.0` 安装包中。
 
 ## 使用
 
@@ -38,11 +40,11 @@
 | | 帧提取 | ☑ | 定时间隔，最多 100 张 |
 | [视频转gif](https://www.u-tools.cn/plugins/detail/%E8%A7%86%E9%A2%91%E8%BD%ACgif/) | 视频转 GIF | ☑ | |
 | [gif2video](https://www.u-tools.cn/plugins/detail/gif2video/) | GIF 转视频 | ☐ | 当前输入队列仅视频文件 |
-| [音视频精灵](https://www.u-tools.cn/plugins/detail/%E9%9F%B3%E8%A7%86%E9%A2%91%E7%B2%BE%E7%81%B5/) | 替换背景音乐 | ☐ | |
+| [音视频精灵](https://www.u-tools.cn/plugins/detail/%E9%9F%B3%E8%A7%86%E9%A2%91%E7%B2%BE%E7%81%B5/) | 替换背景音乐 | ☑ | 支持 MP3、M4A、WAV、FLAC、OGG；短音频自动循环 |
 | | 提取背景音乐 | ☑ | |
 | [音频剪辑](https://www.u-tools.cn/plugins/detail/%E9%9F%B3%E9%A2%91%E5%89%AA%E8%BE%91/) | 音量渐变 | ☐ | |
 
-本插件特有的工作流是秒级独立批次目录、页面粘贴、逐项进度和失败重试。下一轮优先评估视频合并与音乐替换；实现前需核对不同分辨率、帧率和缺失音轨的组合。插件复用 uTools 已安装的 FFmpeg 扩展，不把 FFmpeg 二进制装入插件；插件目录以小于 5 MB 为目标。
+本插件特有的工作流是秒级独立批次目录、页面粘贴、逐项进度和失败重试。下一轮优先评估视频合并；实现前需核对不同分辨率、帧率和缺失音轨的组合。插件复用 uTools 已安装的 FFmpeg 扩展，不把 FFmpeg 二进制装入插件；插件目录以小于 5 MB 为目标。
 
 ## 开发与打包
 

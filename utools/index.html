@@ -87,8 +87,9 @@
           </div>
           <div class="option-group" data-for="audio" hidden>
             <label for="audio-mode">操作</label>
-            <select id="audio-mode"><option value="extract">提取音频 · M4A</option><option value="mute">移除声音 · MP4</option><option value="gain">调整音量 · MP4</option></select>
+            <select id="audio-mode"><option value="extract">提取音频 · M4A</option><option value="mute">移除声音 · MP4</option><option value="gain">调整音量 · MP4</option><option value="replace">替换背景音乐 · MP4</option></select>
             <div id="gain-setting" class="nested-option" hidden><label for="audio-level">音量倍数</label><input id="audio-level" type="number" min="0.25" max="4" step="0.05" value="1.5" inputmode="decimal"></div>
+            <div id="music-setting" class="nested-option" hidden><label>背景音乐</label><div id="music-file" class="file-label">尚未选择</div><button id="choose-music" class="button secondary" type="button">选择音频</button></div>
           </div>
           <div class="option-group" data-for="crop" hidden><label for="crop-x">起点 X · 像素</label><input id="crop-x" type="number" min="0" step="2" value="0"><label for="crop-y">起点 Y · 像素</label><input id="crop-y" type="number" min="0" step="2" value="0"><label for="crop-width">裁剪宽度 · 像素</label><input id="crop-width" type="number" min="2" step="2" value="1280"><label for="crop-height">裁剪高度 · 像素</label><input id="crop-height" type="number" min="2" step="2" value="720"></div>
           <div class="option-group" data-for="watermark" hidden><label>水印图片</label><div id="watermark-file" class="file-label">尚未选择</div><button id="choose-watermark" class="button secondary" type="button">选择图片</button><label for="watermark-width">水印宽度 · 像素</label><input id="watermark-width" type="number" min="16" max="2000" value="180"><label for="watermark-opacity">不透明度</label><input id="watermark-opacity" type="range" min="10" max="100" value="80"><label for="watermark-position">位置</label><select id="watermark-position"><option value="bottom-right">右下</option><option value="bottom-left">左下</option><option value="top-right">右上</option><option value="top-left">左上</option><option value="center">居中</option></select></div>

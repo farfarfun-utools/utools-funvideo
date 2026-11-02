@@ -1,6 +1,7 @@
 const path = require('node:path')
 
 const VIDEO_EXTENSIONS = new Set(['.mp4', '.mov', '.mkv', '.avi', '.webm', '.wmv', '.flv', '.m4v'])
+const MUSIC_EXTENSIONS = new Set(['.mp3', '.m4a', '.wav', '.flac', '.ogg'])
 const OPERATIONS = new Set(['compress', 'trim', 'resize', 'convert', 'animate', 'transform', 'audio', 'crop', 'watermark', 'cover', 'speed', 'frames'])
 
 function validateInput(input) {
@@ -13,9 +14,9 @@ function validateInput(input) {
 function outputName(input, operation, options = {}) {
   options = options || {}
   const base = path.basename(input, path.extname(input))
-  const suffix = { compress: '压缩', trim: '裁剪', resize: '尺寸', convert: '转换', animate: '动图', transform: '变换', audio: { extract: '音频', mute: '静音', gain: '音量' }[options.mode || 'extract'], crop: '画面裁剪', watermark: '水印', cover: '封面', speed: '变速', frames: '帧' }[operation]
+  const suffix = { compress: '压缩', trim: '裁剪', resize: '尺寸', convert: '转换', animate: '动图', transform: '变换', audio: { extract: '音频', mute: '静音', gain: '音量', replace: '配乐' }[options.mode || 'extract'], crop: '画面裁剪', watermark: '水印', cover: '封面', speed: '变速', frames: '帧' }[operation]
   if (!suffix) throw new Error('不支持的处理方式')
-  const extension = operation === 'audio' ? (options.mode === 'mute' || options.mode === 'gain' ? 'mp4' : 'm4a') : operation === 'animate' ? 'gif' : ['cover', 'frames'].includes(operation) ? 'jpg' : operation === 'convert' ? options.format : 'mp4'
+  const extension = operation === 'audio' ? (['mute', 'gain', 'replace'].includes(options.mode) ? 'mp4' : 'm4a') : operation === 'animate' ? 'gif' : ['cover', 'frames'].includes(operation) ? 'jpg' : operation === 'convert' ? options.format : 'mp4'
   if (!['mp4', 'mkv', 'webm', 'm4a', 'gif', 'jpg'].includes(extension)) throw new Error('不支持的输出格式')
   return `${base}_${suffix}.${extension}`
 }
@@ -118,6 +119,10 @@ function buildArgs(job, output) {
         const level = Number(options.level)
         if (!Number.isFinite(level) || level < 0.25 || level > 4) throw new Error('音量倍数必须在 0.25 至 4 之间')
         args = [...common, '-map', '0:v:0', '-map', '0:a:0', '-af', `volume=${level}`, ...mp4, '-crf', '23']
+      } else if (mode === 'replace') {
+        const music = options.music
+        if (typeof music !== 'string' || !path.isAbsolute(music) || !MUSIC_EXTENSIONS.has(path.extname(music).toLowerCase())) throw new Error('请选择受支持的背景音乐文件')
+        args = [...common, '-stream_loop', '-1', '-i', music, '-map', '0:v:0', '-map', '1:a:0', ...mp4, '-crf', '23', '-shortest']
       } else throw new Error('不支持的音频操作')
       break
     }
@@ -125,4 +130,4 @@ function buildArgs(job, output) {
   return [...args, output]
 }
 
-module.exports = { VIDEO_EXTENSIONS, validateInput, outputName, buildArgs }
+module.exports = { VIDEO_EXTENSIONS, MUSIC_EXTENSIONS, validateInput, outputName, buildArgs }

@@ -40,6 +40,11 @@ test('video operations produce expected FFmpeg arguments', () => {
   assert.ok(gain.includes('volume=1.5'))
   assert.equal(outputName(input, 'audio', { mode: 'gain' }), '片段_音量.mp4')
 
+  const replace = buildArgs({ input, operation: 'audio', options: { mode: 'replace', music: '/music/theme.mp3' } }, output)
+  assert.deepEqual(replace.slice(replace.indexOf('-stream_loop'), replace.indexOf('-stream_loop') + 4), ['-stream_loop', '-1', '-i', '/music/theme.mp3'])
+  assert.ok(replace.includes('-shortest'))
+  assert.equal(outputName(input, 'audio', { mode: 'replace' }), '片段_配乐.mp4')
+
   const crop = buildArgs({ input, operation: 'crop', options: { x: 0, y: 2, width: 1280, height: 720 } }, output)
   assert.ok(crop.includes('crop=1280:720:0:2'))
   const watermark = buildArgs({ input, operation: 'watermark', options: { image: '/images/logo.png', width: 180, opacity: 0.8, position: 'bottom-right' } }, output)
@@ -63,6 +68,7 @@ test('invalid settings are rejected before FFmpeg runs', () => {
   assert.throws(() => buildArgs({ input: '/videos/file.txt', operation: 'audio' }, output), /视频文件/)
   assert.throws(() => buildArgs({ input, operation: 'animate', options: { fps: 15, width: 480, duration: 31 } }, output), /动图/)
   assert.throws(() => buildArgs({ input, operation: 'audio', options: { mode: 'gain', level: 8 } }, output), /音量倍数/)
+  assert.throws(() => buildArgs({ input, operation: 'audio', options: { mode: 'replace', music: '/music/theme.txt' } }, output), /背景音乐/)
   assert.throws(() => buildArgs({ input, operation: 'transform', options: { direction: 'sideways' } }, output), /方向/)
   assert.throws(() => buildArgs({ input, operation: 'crop', options: { x: 1, y: 0, width: 1280, height: 720 } }, output), /偶数/)
   assert.throws(() => buildArgs({ input, operation: 'watermark', options: { image: '/tmp/a.txt', width: 180, opacity: 0.8, position: 'center' } }, output), /水印图片/)
