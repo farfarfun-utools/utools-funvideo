@@ -111,16 +111,27 @@ window.funvideo = {
     const selected = utools.showOpenDialog({ title: '选择输出文件夹', properties: ['openDirectory'] })
     return selected?.[0] || null
   },
+  chooseWatermark() {
+    const selected = utools.showOpenDialog({ title: '选择水印图片', properties: ['openFile'], filters: [{ name: '图片', extensions: ['png', 'jpg', 'jpeg', 'webp'] }] })?.[0]
+    if (!selected) return null
+    const stat = fs.statSync(selected)
+    if (!stat.isFile() || stat.size > 32 * 1024 * 1024) throw new Error('水印图片必须是 32 MB 以内的文件')
+    return selected
+  },
   createBatchOutput: outputDirectory,
   async runJob(job, onProgress) {
     if (active) throw new Error('已有任务正在处理')
     if (!job) throw new Error('任务无效')
     checkedFile(job.input)
+    if (job.operation === 'watermark') {
+      const image = job.options?.image
+      if (typeof image !== 'string' || !path.isAbsolute(image) || !fs.statSync(image).isFile() || fs.statSync(image).size > 32 * 1024 * 1024) throw new Error('请选择有效的水印图片')
+    }
     const outputDir = job.outputDir
     if (typeof outputDir !== 'string' || !path.isAbsolute(outputDir) || !fs.statSync(outputDir).isDirectory()) throw new Error('请选择有效的输出文件夹')
     const name = outputName(job.input, job.operation, job.options)
     const temporaryDir = fs.mkdtempSync(path.join(outputDir, '.funvideo-'))
-    const temporaryFile = path.join(temporaryDir, `${randomUUID()}${path.extname(name)}`)
+    const temporaryFile = path.join(temporaryDir, job.operation === 'frames' ? 'frame_%04d.jpg' : `${randomUUID()}${path.extname(name)}`)
     const task = { process: null, canceled: false }
     active = task
     try {
@@ -130,6 +141,13 @@ window.funvideo = {
       })
       await task.process
       if (task.canceled) throw new Error('任务已取消')
+      if (job.operation === 'frames') {
+        const files = fs.readdirSync(temporaryDir).filter(file => /^frame_\d{4}\.jpg$/.test(file)).sort()
+        if (!files.length) throw new Error('视频中没有可提取的画面')
+        const stem = name.slice(0, -4)
+        files.forEach((file, index) => publishOutput(path.join(temporaryDir, file), outputDir, `${stem}_${String(index + 1).padStart(4, '0')}.jpg`))
+        return outputDir
+      }
       if (!fs.existsSync(temporaryFile) || !fs.statSync(temporaryFile).size) throw new Error('FFmpeg 未生成有效的输出文件')
       return publishOutput(temporaryFile, outputDir, name)
     } catch (error) {

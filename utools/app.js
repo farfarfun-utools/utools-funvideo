@@ -17,12 +17,16 @@ const elements = {
   summary: document.querySelector('#queue-summary'),
   notice: document.querySelector('#notice'),
   options: document.querySelector('#options'),
+  operation: document.querySelector('#operation'),
+  operationDescription: document.querySelector('#operation-description'),
 }
 let operation = 'compress'
 let outputDir = ''
 let lastBatchDir = ''
 let running = false
 let stopRequested = false
+let watermarkPath = ''
+const operationNames = { compress: '批量压缩视频', trim: '按时间裁剪', resize: '调整画面尺寸', convert: '转换容器格式', animate: '导出 GIF 动图', transform: '旋转或翻转画面', audio: '提取或调整音频', crop: '裁剪画面区域', watermark: '叠加图片水印', cover: '提取单张封面', speed: '调整播放速度', frames: '定时提取画面' }
 
 function icon(name) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
@@ -147,6 +151,21 @@ function readOptions() {
       if (mode === 'gain' && (!Number.isFinite(level) || level < 0.25 || level > 4)) throw new Error('音量倍数须在 0.25 至 4 之间')
       return { mode, level }
     }
+    case 'crop': {
+      const ids = ['crop-x', 'crop-y', 'crop-width', 'crop-height']
+      const [x, y, width, height] = ids.map(id => Number(document.getElementById(id).value))
+      if (![x, y, width, height].every(Number.isInteger) || x < 0 || y < 0 || width < 2 || height < 2 || [x, y, width, height].some(value => value % 2)) throw new Error('裁剪坐标与尺寸必须为偶数')
+      return { x, y, width, height }
+    }
+    case 'watermark': {
+      if (!watermarkPath) throw new Error('请先选择水印图片')
+      const width = Number(document.querySelector('#watermark-width').value)
+      if (!Number.isInteger(width) || width < 16 || width > 2000) throw new Error('水印宽度必须在 16 至 2000 像素之间')
+      return { image: watermarkPath, width, opacity: Number(document.querySelector('#watermark-opacity').value) / 100, position: document.querySelector('#watermark-position').value }
+    }
+    case 'cover': return { time: document.querySelector('#cover-time').value }
+    case 'speed': return { rate: document.querySelector('#speed-rate').value }
+    case 'frames': return { interval: document.querySelector('#frame-interval').value, count: Number(document.querySelector('#frame-count').value) }
     default: return {}
   }
 }
@@ -198,22 +217,26 @@ async function startBatch() {
   message(stopRequested ? '已取消，未开始的任务仍在队列中' : '本轮处理结束')
 }
 
-document.querySelectorAll('[data-operation]').forEach(control => control.addEventListener('click', () => {
-  operation = control.dataset.operation
-  document.querySelectorAll('[data-operation]').forEach(item => {
-    const selected = item === control
-    item.classList.toggle('active', selected)
-    item.setAttribute('aria-pressed', String(selected))
-  })
+elements.operation.addEventListener('change', () => {
+  operation = elements.operation.value
+  elements.operationDescription.textContent = operationNames[operation]
   document.querySelectorAll('[data-for]').forEach(item => { item.hidden = item.dataset.for !== operation })
-}))
+})
 document.querySelector('#audio-mode').addEventListener('change', event => {
   document.querySelector('#gain-setting').hidden = event.target.value !== 'gain'
+})
+document.querySelector('#choose-watermark').addEventListener('click', () => {
+  if (!bridge) return
+  try {
+    const selected = bridge.chooseWatermark()
+    if (selected) { watermarkPath = selected; document.querySelector('#watermark-file').textContent = selected; document.querySelector('#watermark-file').title = selected }
+  } catch (error) { message(error.message, true) }
 })
 
 elements.add.addEventListener('click', () => {
   try { addFiles(bridge.chooseFiles()) } catch (error) { message(error.message, true) }
 })
+document.querySelector('#add-empty').addEventListener('click', () => elements.add.click())
 elements.settingsButton.addEventListener('click', () => elements.settings.showModal())
 document.querySelector('#close-settings').addEventListener('click', () => elements.settings.close())
 elements.settings.addEventListener('click', event => {
@@ -246,7 +269,9 @@ if (bridge) bridge.onFiles(paths => {
 })
 else {
   elements.add.disabled = true
+  document.querySelector('#add-empty').disabled = true
   elements.output.disabled = true
+  document.querySelector('#choose-watermark').disabled = true
   message('请在 uTools 中打开插件以选择和处理本地视频')
 }
 elements.resetOutput.disabled = true

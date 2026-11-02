@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#176d66">
+  <meta name="theme-color" content="#19332d">
   <title>视频工坊</title>
   <link rel="icon" href="logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
@@ -24,7 +24,7 @@
     <symbol id="icon-audio" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13M9 9l12-2"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
     <symbol id="icon-external" viewBox="0 0 24 24"><path d="M13 5h6v6m0-6-9 9M19 13v6H5V5h6"/></symbol>
     <symbol id="icon-check" viewBox="0 0 24 24"><path d="m4 12 5 5L20 6"/></symbol>
-    <symbol id="icon-settings" viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.86 1.86-.06-.06A1.7 1.7 0 0 0 16 18.4a1.7 1.7 0 0 0-1 1.57V21H9v-1.03A1.7 1.7 0 0 0 8 18.4a1.7 1.7 0 0 0-1.88.34l-.06.06-1.86-1.86.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.57-1H2v-4h1.03A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.88L4.2 7.06 6.06 5.2l.06.06A1.7 1.7 0 0 0 8 5.6a1.7 1.7 0 0 0 1-1.57V3h6v1.03a1.7 1.7 0 0 0 1 1.57 1.7 1.7 0 0 0 1.88-.34l.06-.06 1.86 1.86-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.57 1H22v4h-1.03A1.7 1.7 0 0 0 19.4 15Z"/></symbol>
+    <symbol id="icon-settings" viewBox="0 0 24 24"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></symbol>
   </svg>
 
   <div class="app">
@@ -38,21 +38,19 @@
       <button id="open-settings" class="icon-button" type="button" title="设置" aria-label="设置" aria-haspopup="dialog" aria-controls="settings-dialog" data-lock><svg><use href="#icon-settings"/></svg></button>
     </header>
 
-    <main class="workspace">
-      <aside class="settings" aria-label="处理设置">
-        <h2>处理方式</h2>
-        <nav class="operation-list" aria-label="选择处理方式">
-          <button type="button" class="operation active" data-operation="compress" data-lock aria-pressed="true"><svg><use href="#icon-film"/></svg><span>视频压缩</span></button>
-          <button type="button" class="operation" data-operation="trim" data-lock aria-pressed="false"><svg><use href="#icon-scissors"/></svg><span>时长裁剪</span></button>
-          <button type="button" class="operation" data-operation="resize" data-lock aria-pressed="false"><svg><use href="#icon-scale"/></svg><span>调整尺寸</span></button>
-          <button type="button" class="operation" data-operation="convert" data-lock aria-pressed="false"><svg><use href="#icon-repeat"/></svg><span>格式转换</span></button>
-          <button type="button" class="operation" data-operation="animate" data-lock aria-pressed="false"><svg><use href="#icon-film"/></svg><span>转为动图</span></button>
-          <button type="button" class="operation" data-operation="transform" data-lock aria-pressed="false"><svg><use href="#icon-refresh"/></svg><span>旋转翻转</span></button>
-          <button type="button" class="operation" data-operation="audio" data-lock aria-pressed="false"><svg><use href="#icon-audio"/></svg><span>音频处理</span></button>
-        </nav>
+    <nav class="operation-strip" aria-label="选择处理方式">
+      <label for="operation">处理方式</label>
+      <select id="operation" data-lock>
+        <optgroup label="优化与格式"><option value="compress">视频压缩</option><option value="convert">格式转换</option><option value="resize">调整尺寸</option><option value="speed">视频变速</option></optgroup>
+        <optgroup label="画面编辑"><option value="trim">时长裁剪</option><option value="crop">画面裁剪</option><option value="transform">旋转翻转</option><option value="watermark">添加水印</option></optgroup>
+        <optgroup label="导出"><option value="animate">转为动图</option><option value="cover">提取封面</option><option value="frames">批量抽帧</option><option value="audio">音频处理</option></optgroup>
+      </select>
+      <span id="operation-description">批量压缩视频</span>
+    </nav>
 
-        <div class="section-rule"></div>
-        <h2>参数</h2>
+    <main class="workspace">
+      <aside class="settings" aria-label="处理参数">
+        <h2>处理参数</h2>
         <fieldset id="options" class="options">
           <div class="option-group" data-for="compress">
             <label for="quality">压缩质量</label>
@@ -92,15 +90,20 @@
             <select id="audio-mode"><option value="extract">提取音频 · M4A</option><option value="mute">移除声音 · MP4</option><option value="gain">调整音量 · MP4</option></select>
             <div id="gain-setting" class="nested-option" hidden><label for="audio-level">音量倍数</label><input id="audio-level" type="number" min="0.25" max="4" step="0.05" value="1.5" inputmode="decimal"></div>
           </div>
+          <div class="option-group" data-for="crop" hidden><label for="crop-x">起点 X · 像素</label><input id="crop-x" type="number" min="0" step="2" value="0"><label for="crop-y">起点 Y · 像素</label><input id="crop-y" type="number" min="0" step="2" value="0"><label for="crop-width">裁剪宽度 · 像素</label><input id="crop-width" type="number" min="2" step="2" value="1280"><label for="crop-height">裁剪高度 · 像素</label><input id="crop-height" type="number" min="2" step="2" value="720"></div>
+          <div class="option-group" data-for="watermark" hidden><label>水印图片</label><div id="watermark-file" class="file-label">尚未选择</div><button id="choose-watermark" class="button secondary" type="button">选择图片</button><label for="watermark-width">水印宽度 · 像素</label><input id="watermark-width" type="number" min="16" max="2000" value="180"><label for="watermark-opacity">不透明度</label><input id="watermark-opacity" type="range" min="10" max="100" value="80"><label for="watermark-position">位置</label><select id="watermark-position"><option value="bottom-right">右下</option><option value="bottom-left">左下</option><option value="top-right">右上</option><option value="top-left">左上</option><option value="center">居中</option></select></div>
+          <div class="option-group" data-for="cover" hidden><label for="cover-time">封面时间 · 秒</label><input id="cover-time" type="number" min="0" step="0.1" value="0"></div>
+          <div class="option-group" data-for="speed" hidden><label for="speed-rate">播放速度</label><select id="speed-rate"><option value="0.5">0.5 倍</option><option value="0.75">0.75 倍</option><option value="1.25">1.25 倍</option><option value="1.5">1.5 倍</option><option value="2">2 倍</option></select></div>
+          <div class="option-group" data-for="frames" hidden><label for="frame-interval">抽帧间隔 · 秒</label><input id="frame-interval" type="number" min="0.1" max="3600" step="0.1" value="5"><label for="frame-count">最多抽取 · 张</label><input id="frame-count" type="number" min="1" max="100" value="20"></div>
         </fieldset>
 
       </aside>
 
       <section class="queue" aria-labelledby="queue-title">
         <div class="queue-head"><div><h2 id="queue-title">文件队列 <span id="file-count">0</span></h2><p id="queue-summary">等待添加视频</p></div><div class="queue-actions"><button id="open-batch-folder" class="text-button" type="button" hidden>打开结果文件夹</button><button id="clear-done" class="text-button" type="button" data-lock hidden>清除已完成</button></div></div>
-        <div id="empty-state" class="empty-state"><svg><use href="#icon-film"/></svg><strong>还没有视频</strong></div>
-        <ul id="job-list" class="job-list" aria-label="待处理视频"></ul>
         <div id="notice" class="notice" role="status" aria-live="polite"></div>
+        <div id="empty-state" class="empty-state"><svg><use href="#icon-film"/></svg><strong>还没有视频</strong><button id="add-empty" class="button secondary" type="button"><svg><use href="#icon-plus"/></svg>添加视频</button></div>
+        <ul id="job-list" class="job-list" aria-label="待处理视频"></ul>
       </section>
     </main>
   </div>
