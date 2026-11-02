@@ -3,7 +3,7 @@
   "version": "0.4.1",
   "description": "批量压缩、裁剪、变速、加水印、抽帧和转换视频，本地处理",
   "author": "farfarfun",
-  "main": "index.html",
+  "main": "dist/index.html",
   "preload": "preload.js",
   "logo": "logo.png",
   "pluginSetting": { "height": 720 },

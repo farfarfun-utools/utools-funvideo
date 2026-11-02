@@ -14,15 +14,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Build plugin
-        run: sh build.sh
-      - name: Check FFmpeg processing
+          cache: npm
+      - name: Prepare FFmpeg
         run: |
           if ! command -v ffmpeg >/dev/null; then
             sudo apt-get update
             sudo apt-get install -y ffmpeg
           fi
-          npm run test:ffmpeg
+      - name: Check and build plugin
+        run: sh build.sh
+        env:
+          RUN_FFMPEG_TEST: '1'
       - uses: actions/upload-artifact@v4
         with:
           name: utools-funvideo-developer-files
