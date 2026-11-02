@@ -89,7 +89,7 @@ function render() {
   elements.count.textContent = String(jobs.length)
   elements.empty.hidden = jobs.length > 0
   elements.summary.textContent = jobs.length ? `${queued} 待处理 · ${done} 已完成${failed ? ` · ${failed} 失败` : ''}` : '等待添加视频'
-  elements.start.disabled = running || !bridge || !queued || !outputDir
+  elements.start.disabled = running || !bridge || !queued
   elements.clear.hidden = !done
 }
 
@@ -142,13 +142,13 @@ function setRunning(value) {
 }
 
 async function startBatch() {
-  if (!bridge || running || !outputDir) return
+  if (!bridge || running) return
   let options
   try { options = readOptions() } catch (error) { message(error.message, true); return }
   stopRequested = false
   setRunning(true)
   message('正在处理视频')
-  for (const job of jobs) {
+  for (const job of [...jobs]) {
     if (stopRequested) break
     if (job.status !== 'queued') continue
     job.status = 'running'

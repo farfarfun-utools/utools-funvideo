@@ -1,17 +1,52 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const { randomUUID } = require('node:crypto')
+const { fileURLToPath } = require('node:url')
 const { VIDEO_EXTENSIONS, validateInput, outputName, buildArgs } = require('./tasks')
 
 const enterQueue = []
 let enterHandler
 let active
 
+function deliverFiles(files) {
+  if (enterHandler) enterHandler(files)
+  else enterQueue.push(files)
+}
+
 utools.onPluginEnter(action => {
   if (action.type !== 'files' || !Array.isArray(action.payload)) return
   const files = action.payload.filter(file => file && file.isFile && typeof file.path === 'string').map(file => file.path)
-  if (enterHandler) enterHandler(files)
-  else enterQueue.push(files)
+  deliverFiles(files)
+})
+
+window.addEventListener?.('paste', event => {
+  const data = event.clipboardData
+  if (!data) return
+  let paths = []
+  if (data.files?.length) {
+    const { webUtils } = require('electron')
+    paths = [...data.files].map(file => {
+      try { return webUtils.getPathForFile(file) }
+      catch { return '' }
+    }).filter(Boolean)
+  }
+  if (!paths.length && !event.target?.closest?.('input, textarea, select, [contenteditable]')) {
+    const text = data.getData('text/uri-list') || data.getData('text/plain')
+    if (text.length <= 32768) {
+      paths = text.split(/\r?\n/).filter(line => line && !line.startsWith('#')).slice(0, 100).map(line => {
+        try { return line.startsWith('file://') ? fileURLToPath(line) : line }
+        catch { return '' }
+      }).filter(file => path.isAbsolute(file))
+    }
+  }
+  const videos = paths.filter(file => {
+    try { return VIDEO_EXTENSIONS.has(path.extname(file).toLowerCase()) && fs.statSync(file).isFile() }
+    catch { return false }
+  })
+  if (videos.length) {
+    event.preventDefault()
+    deliverFiles(videos)
+  }
 })
 
 function checkedFile(file) {
@@ -63,10 +98,12 @@ window.funvideo = {
   },
   async runJob(job, onProgress) {
     if (active) throw new Error('已有任务正在处理')
-    if (!job || typeof job.outputDir !== 'string' || !path.isAbsolute(job.outputDir) || !fs.statSync(job.outputDir).isDirectory()) throw new Error('请选择有效的输出文件夹')
+    if (!job) throw new Error('任务无效')
     checkedFile(job.input)
+    const outputDir = job.outputDir || path.dirname(job.input)
+    if (typeof outputDir !== 'string' || !path.isAbsolute(outputDir) || !fs.statSync(outputDir).isDirectory()) throw new Error('请选择有效的输出文件夹')
     const name = outputName(job.input, job.operation, job.options)
-    const temporaryDir = fs.mkdtempSync(path.join(job.outputDir, '.funvideo-'))
+    const temporaryDir = fs.mkdtempSync(path.join(outputDir, '.funvideo-'))
     const temporaryFile = path.join(temporaryDir, `${randomUUID()}${path.extname(name)}`)
     const task = { process: null, canceled: false }
     active = task
@@ -78,7 +115,7 @@ window.funvideo = {
       await task.process
       if (task.canceled) throw new Error('任务已取消')
       if (!fs.existsSync(temporaryFile) || !fs.statSync(temporaryFile).size) throw new Error('FFmpeg 未生成有效的输出文件')
-      return publishOutput(temporaryFile, job.outputDir, name)
+      return publishOutput(temporaryFile, outputDir, name)
     } catch (error) {
       if (task.canceled) throw new Error('任务已取消')
       throw error
