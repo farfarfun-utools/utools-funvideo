@@ -56,6 +56,13 @@ function checkedFile(file) {
   return { path: file, name: path.basename(file), size: info.size }
 }
 
+utools.registerTool?.('queue_videos', ({ paths }) => {
+  if (!Array.isArray(paths) || !paths.length || paths.length > 100) throw new Error('请提供 1 至 100 个本地视频路径')
+  const files = paths.map(checkedFile)
+  deliverFiles(files.map(file => file.path))
+  return { queued: files.map(({ name, size }) => ({ name, size })) }
+})
+
 function checkedMusic(file) {
   if (typeof file !== 'string' || !path.isAbsolute(file) || !MUSIC_EXTENSIONS.has(path.extname(file).toLowerCase())) throw new Error('请选择受支持的背景音乐文件')
   try { if (fs.statSync(file).isFile()) return file }
