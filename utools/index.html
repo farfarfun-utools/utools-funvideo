@@ -7,6 +7,7 @@
   <title>视频工坊</title>
   <link rel="icon" href="logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="workshop.css">
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -25,6 +26,7 @@
     <symbol id="icon-external" viewBox="0 0 24 24"><path d="M13 5h6v6m0-6-9 9M19 13v6H5V5h6"/></symbol>
     <symbol id="icon-check" viewBox="0 0 24 24"><path d="m4 12 5 5L20 6"/></symbol>
     <symbol id="icon-settings" viewBox="0 0 24 24"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="icon-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
   </svg>
 
   <div class="app">
@@ -32,25 +34,23 @@
       <div class="brand"><img src="logo.svg" alt="" width="38" height="38"><div><h1>视频工坊</h1><span>FunVideo</span></div></div>
       <div class="top-actions">
         <button id="add-files" class="button secondary" type="button" data-lock><svg><use href="#icon-plus"/></svg>添加视频</button>
-        <button id="start" class="button primary" type="button" data-lock disabled><svg><use href="#icon-play"/></svg>开始处理</button>
-        <button id="cancel" class="button danger" type="button" hidden><svg><use href="#icon-stop"/></svg>取消</button>
       </div>
       <button id="open-settings" class="icon-button" type="button" title="设置" aria-label="设置" aria-haspopup="dialog" aria-controls="settings-dialog" data-lock><svg><use href="#icon-settings"/></svg></button>
     </header>
 
-    <nav class="operation-strip" aria-label="选择处理方式">
-      <label for="operation">处理方式</label>
-      <select id="operation" data-lock>
-        <optgroup label="优化与格式"><option value="compress">视频压缩</option><option value="convert">格式转换</option><option value="resize">调整尺寸</option><option value="speed">视频变速</option></optgroup>
-        <optgroup label="画面编辑"><option value="trim">时长裁剪</option><option value="crop">画面裁剪</option><option value="transform">旋转翻转</option><option value="watermark">添加水印</option></optgroup>
-        <optgroup label="导出"><option value="animate">转为动图</option><option value="cover">提取封面</option><option value="frames">批量抽帧</option><option value="audio">音频处理</option></optgroup>
-      </select>
-      <span id="operation-description">批量压缩视频</span>
-    </nav>
-
     <main class="workspace">
+      <nav class="toolnav" aria-label="处理工具">
+        <div id="category-rail" class="category-rail" aria-label="工具分类"></div>
+        <div class="tool-panel"><span class="tool-caption">选择工具</span><div id="tool-list" class="tool-list"></div></div>
+        <select id="operation" aria-label="处理方式" data-lock hidden>
+          <optgroup label="优化与格式"><option value="compress">视频压缩</option><option value="convert">格式转换</option><option value="resize">调整尺寸</option><option value="speed">视频变速</option></optgroup>
+          <optgroup label="画面编辑"><option value="trim">时长裁剪</option><option value="crop">画面裁剪</option><option value="transform">旋转翻转</option><option value="watermark">添加水印</option></optgroup>
+          <optgroup label="提取与导出"><option value="animate">转为动图</option><option value="cover">提取封面</option><option value="frames">批量抽帧</option></optgroup>
+          <optgroup label="音频"><option value="audio">音频处理</option></optgroup>
+        </select>
+      </nav>
       <aside class="settings" aria-label="处理参数">
-        <h2>处理参数</h2>
+        <div class="settings-heading"><h2>压缩参数</h2><span id="operation-description">批量压缩视频</span></div>
         <fieldset id="options" class="options">
           <div class="option-group" data-for="compress">
             <label for="quality">压缩质量</label>
@@ -105,6 +105,7 @@
         <div id="empty-state" class="empty-state"><svg><use href="#icon-film"/></svg><strong>还没有视频</strong><button id="add-empty" class="button secondary" type="button"><svg><use href="#icon-plus"/></svg>添加视频</button></div>
         <ul id="job-list" class="job-list" aria-label="待处理视频"></ul>
       </section>
+      <footer class="runbar"><div class="destination"><svg><use href="#icon-folder"/></svg><span id="footer-output">首个视频所在目录</span></div><div class="run-actions"><button id="start" class="button primary" type="button" data-lock disabled><svg><use href="#icon-play"/></svg>开始处理</button><button id="cancel" class="button danger" type="button" hidden><svg><use href="#icon-stop"/></svg>取消</button></div></footer>
     </main>
   </div>
   <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title">

@@ -221,7 +221,55 @@ elements.operation.addEventListener('change', () => {
   operation = elements.operation.value
   elements.operationDescription.textContent = operationNames[operation]
   document.querySelectorAll('[data-for]').forEach(item => { item.hidden = item.dataset.for !== operation })
+  document.querySelector('.workspace').classList.toggle('long-parameters', operation === 'watermark')
+  syncToolnav()
 })
+const toolGroups = [...elements.operation.querySelectorAll('optgroup')]
+const categoryRail = document.querySelector('#category-rail')
+const toolList = document.querySelector('#tool-list')
+toolGroups.forEach((group, index) => {
+  const control = document.createElement('button')
+  control.type = 'button'
+  control.className = 'category-button'
+  control.dataset.lock = ''
+  control.append(icon(['grid', 'scissors', 'folder', 'audio'][index]), document.createTextNode(group.label))
+  control.addEventListener('click', () => {
+    elements.operation.value = group.querySelector('option').value
+    elements.operation.dispatchEvent(new Event('change'))
+  })
+  categoryRail.append(control)
+})
+function syncToolnav() {
+  const index = toolGroups.findIndex(group => [...group.querySelectorAll('option')].some(option => option.value === operation))
+  categoryRail.querySelectorAll('button').forEach((control, groupIndex) => {
+    control.classList.toggle('active', groupIndex === index)
+    control.setAttribute('aria-pressed', String(groupIndex === index))
+  })
+  if (toolList.dataset.group !== String(index)) {
+    toolList.dataset.group = String(index)
+    toolList.replaceChildren()
+    for (const option of toolGroups[index].querySelectorAll('option')) {
+      const control = document.createElement('button')
+      control.type = 'button'
+      control.className = 'tool-button'
+      control.dataset.lock = ''
+      control.dataset.operation = option.value
+      control.textContent = option.textContent
+      control.addEventListener('click', () => {
+        elements.operation.value = option.value
+        elements.operation.dispatchEvent(new Event('change'))
+      })
+      toolList.append(control)
+    }
+  }
+  toolList.querySelectorAll('button').forEach(control => {
+    const active = control.dataset.operation === operation
+    control.classList.toggle('active', active)
+    control.setAttribute('aria-pressed', String(active))
+  })
+  document.querySelector('.settings-heading h2').textContent = `${elements.operation.selectedOptions[0].textContent}参数`
+}
+syncToolnav()
 document.querySelector('#audio-mode').addEventListener('change', event => {
   document.querySelector('#gain-setting').hidden = event.target.value !== 'gain'
 })
@@ -247,6 +295,7 @@ elements.resetOutput.addEventListener('click', () => {
   outputDir = ''
   elements.outputLabel.textContent = '首个视频所在目录'
   elements.outputLabel.title = '首个视频所在目录'
+  document.querySelector('#footer-output').textContent = '首个视频所在目录'
   elements.resetOutput.disabled = true
 })
 elements.output.addEventListener('click', () => {
@@ -256,6 +305,7 @@ elements.output.addEventListener('click', () => {
     outputDir = selected
     elements.outputLabel.textContent = selected
     elements.outputLabel.title = selected
+    document.querySelector('#footer-output').textContent = selected
     elements.resetOutput.disabled = false
   } catch (error) { message(error.message, true) }
 })
