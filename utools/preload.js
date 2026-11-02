@@ -75,6 +75,21 @@ function publishOutput(temporaryFile, directory, name) {
   }
 }
 
+function outputDirectory(targetDir, firstInput) {
+  checkedFile(firstInput)
+  const parent = targetDir || path.dirname(firstInput)
+  if (typeof parent !== 'string' || !path.isAbsolute(parent) || !fs.statSync(parent).isDirectory()) throw new Error('请选择有效的输出文件夹')
+  const now = new Date()
+  const pad = value => String(value).padStart(2, '0')
+  const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`
+  const base = `FunVideo_${stamp}`
+  for (let index = 1; ; index++) {
+    const directory = path.join(parent, index === 1 ? base : `${base}_${index}`)
+    try { fs.mkdirSync(directory); return directory }
+    catch (error) { if (error.code !== 'EEXIST') throw error }
+  }
+}
+
 window.funvideo = {
   onFiles(callback) {
     enterHandler = callback
@@ -96,11 +111,12 @@ window.funvideo = {
     const selected = utools.showOpenDialog({ title: '选择输出文件夹', properties: ['openDirectory'] })
     return selected?.[0] || null
   },
+  createBatchOutput: outputDirectory,
   async runJob(job, onProgress) {
     if (active) throw new Error('已有任务正在处理')
     if (!job) throw new Error('任务无效')
     checkedFile(job.input)
-    const outputDir = job.outputDir || path.dirname(job.input)
+    const outputDir = job.outputDir
     if (typeof outputDir !== 'string' || !path.isAbsolute(outputDir) || !fs.statSync(outputDir).isDirectory()) throw new Error('请选择有效的输出文件夹')
     const name = outputName(job.input, job.operation, job.options)
     const temporaryDir = fs.mkdtempSync(path.join(outputDir, '.funvideo-'))

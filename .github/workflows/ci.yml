@@ -16,6 +16,13 @@ jobs:
           node-version: 22
       - name: Check JavaScript and run tests
         run: npm run check
+      - name: Check FFmpeg processing
+        run: |
+          if ! command -v ffmpeg >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+          npm run test:ffmpeg
       - name: Check plugin resources
         run: |
           node - <<'JS'

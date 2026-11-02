@@ -1,7 +1,7 @@
 {
   "pluginName": "视频工坊",
-  "version": "0.1.1",
-  "description": "批量压缩、裁剪、调整尺寸、转换格式和提取音频，本地处理视频",
+  "version": "0.2.0",
+  "description": "批量压缩、裁剪、转换、转 GIF、旋转翻转和音频处理，本地处理视频",
   "author": "farfarfun",
   "main": "index.html",
   "preload": "preload.js",

@@ -6,6 +6,7 @@ const elements = {
   cancel: document.querySelector('#cancel'),
   output: document.querySelector('#choose-output'),
   outputLabel: document.querySelector('#output-label'),
+  batchFolder: document.querySelector('#open-batch-folder'),
   clear: document.querySelector('#clear-done'),
   list: document.querySelector('#job-list'),
   empty: document.querySelector('#empty-state'),
@@ -16,6 +17,7 @@ const elements = {
 }
 let operation = 'compress'
 let outputDir = ''
+let lastBatchDir = ''
 let running = false
 let stopRequested = false
 
@@ -128,6 +130,20 @@ function readOptions() {
       return { width }
     }
     case 'convert': return { format: document.querySelector('#format').value }
+    case 'animate': {
+      const duration = Number(document.querySelector('#gif-duration').value)
+      const width = Number(document.querySelector('#gif-width').value)
+      const fps = Number(document.querySelector('#gif-fps').value)
+      if (!Number.isFinite(duration) || duration < 1 || duration > 30) throw new Error('动图时长须在 1 至 30 秒之间')
+      return { duration, width, fps }
+    }
+    case 'transform': return { direction: document.querySelector('#direction').value }
+    case 'audio': {
+      const mode = document.querySelector('#audio-mode').value
+      const level = Number(document.querySelector('#audio-level').value)
+      if (mode === 'gain' && (!Number.isFinite(level) || level < 0.25 || level > 4)) throw new Error('音量倍数须在 0.25 至 4 之间')
+      return { mode, level }
+    }
     default: return {}
   }
 }
@@ -144,18 +160,26 @@ function setRunning(value) {
 async function startBatch() {
   if (!bridge || running) return
   let options
-  try { options = readOptions() } catch (error) { message(error.message, true); return }
+  let batchDir
+  const pending = jobs.filter(job => job.status === 'queued')
+  if (!pending.length) return
+  try {
+    options = readOptions()
+    batchDir = bridge.createBatchOutput(outputDir, pending[0].path)
+  } catch (error) { message(error.message, true); return }
+  lastBatchDir = batchDir
+  elements.batchFolder.hidden = false
+  elements.batchFolder.title = batchDir
   stopRequested = false
   setRunning(true)
   message('正在处理视频')
-  for (const job of [...jobs]) {
+  for (const job of pending) {
     if (stopRequested) break
-    if (job.status !== 'queued') continue
     job.status = 'running'
     job.progress = 0
     render()
     try {
-      job.output = await bridge.runJob({ input: job.path, outputDir, operation, options }, progress => {
+      job.output = await bridge.runJob({ input: job.path, outputDir: batchDir, operation, options }, progress => {
         job.progress = Math.max(0, Math.min(100, Math.round(progress.percent || 0)))
         render()
       })
@@ -180,6 +204,9 @@ document.querySelectorAll('[data-operation]').forEach(control => control.addEven
   })
   document.querySelectorAll('[data-for]').forEach(item => { item.hidden = item.dataset.for !== operation })
 }))
+document.querySelector('#audio-mode').addEventListener('change', event => {
+  document.querySelector('#gain-setting').hidden = event.target.value !== 'gain'
+})
 
 elements.add.addEventListener('click', () => {
   try { addFiles(bridge.chooseFiles()) } catch (error) { message(error.message, true) }
@@ -195,6 +222,7 @@ elements.output.addEventListener('click', () => {
   } catch (error) { message(error.message, true) }
 })
 elements.start.addEventListener('click', startBatch)
+elements.batchFolder.addEventListener('click', () => openOutput(lastBatchDir))
 elements.cancel.addEventListener('click', () => { stopRequested = true; bridge.cancel(); elements.cancel.disabled = true; message('正在取消任务') })
 elements.clear.addEventListener('click', () => { for (let i = jobs.length - 1; i >= 0; i--) if (jobs[i].status === 'done') jobs.splice(i, 1); render() })
 

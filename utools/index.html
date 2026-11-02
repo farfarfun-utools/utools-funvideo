@@ -44,7 +44,9 @@
           <button type="button" class="operation" data-operation="trim" data-lock aria-pressed="false"><svg><use href="#icon-scissors"/></svg><span>时长裁剪</span></button>
           <button type="button" class="operation" data-operation="resize" data-lock aria-pressed="false"><svg><use href="#icon-scale"/></svg><span>调整尺寸</span></button>
           <button type="button" class="operation" data-operation="convert" data-lock aria-pressed="false"><svg><use href="#icon-repeat"/></svg><span>格式转换</span></button>
-          <button type="button" class="operation" data-operation="audio" data-lock aria-pressed="false"><svg><use href="#icon-audio"/></svg><span>提取音频</span></button>
+          <button type="button" class="operation" data-operation="animate" data-lock aria-pressed="false"><svg><use href="#icon-film"/></svg><span>转为动图</span></button>
+          <button type="button" class="operation" data-operation="transform" data-lock aria-pressed="false"><svg><use href="#icon-refresh"/></svg><span>旋转翻转</span></button>
+          <button type="button" class="operation" data-operation="audio" data-lock aria-pressed="false"><svg><use href="#icon-audio"/></svg><span>音频处理</span></button>
         </nav>
 
         <div class="section-rule"></div>
@@ -71,19 +73,33 @@
             <label for="format">输出格式</label>
             <select id="format"><option value="mp4">MP4 · H.264 / AAC</option><option value="mkv">MKV · H.264 / AAC</option><option value="webm">WebM · VP9 / Opus</option></select>
           </div>
+          <div class="option-group" data-for="animate" hidden>
+            <label for="gif-duration">动图时长 · 秒</label>
+            <input id="gif-duration" type="number" min="1" max="30" step="0.1" value="5" inputmode="decimal">
+            <label for="gif-width">输出宽度 · 像素</label>
+            <select id="gif-width"><option value="320">320</option><option value="480" selected>480</option><option value="720">720</option></select>
+            <label for="gif-fps">帧率</label>
+            <select id="gif-fps"><option value="10">10 fps</option><option value="15" selected>15 fps</option><option value="24">24 fps</option></select>
+          </div>
+          <div class="option-group" data-for="transform" hidden>
+            <label for="direction">方向</label>
+            <select id="direction"><option value="clockwise">顺时针 90°</option><option value="counterclockwise">逆时针 90°</option><option value="rotate180">旋转 180°</option><option value="hflip">水平翻转</option><option value="vflip">垂直翻转</option></select>
+          </div>
           <div class="option-group" data-for="audio" hidden>
-            <p>提取第一条音轨，输出 M4A / AAC。</p>
+            <label for="audio-mode">操作</label>
+            <select id="audio-mode"><option value="extract">提取音频 · M4A</option><option value="mute">移除声音 · MP4</option><option value="gain">调整音量 · MP4</option></select>
+            <div id="gain-setting" class="nested-option" hidden><label for="audio-level">音量倍数</label><input id="audio-level" type="number" min="0.25" max="4" step="0.05" value="1.5" inputmode="decimal"></div>
           </div>
         </fieldset>
 
         <div class="section-rule"></div>
         <h2>输出位置</h2>
-        <button id="choose-output" class="output-select" type="button" data-lock><svg><use href="#icon-folder"/></svg><span id="output-label">与源视频同目录</span></button>
-        <p class="output-note">原文件不会被覆盖。</p>
+        <button id="choose-output" class="output-select" type="button" data-lock><svg><use href="#icon-folder"/></svg><span id="output-label">首个视频所在目录</span></button>
+        <p class="output-note">每批新建文件夹，不覆盖原文件。</p>
       </aside>
 
       <section class="queue" aria-labelledby="queue-title">
-        <div class="queue-head"><div><h2 id="queue-title">文件队列 <span id="file-count">0</span></h2><p id="queue-summary">等待添加视频</p></div><button id="clear-done" class="text-button" type="button" data-lock hidden>清除已完成</button></div>
+        <div class="queue-head"><div><h2 id="queue-title">文件队列 <span id="file-count">0</span></h2><p id="queue-summary">等待添加视频</p></div><div class="queue-actions"><button id="open-batch-folder" class="text-button" type="button" hidden>打开结果文件夹</button><button id="clear-done" class="text-button" type="button" data-lock hidden>清除已完成</button></div></div>
         <div id="empty-state" class="empty-state"><svg><use href="#icon-film"/></svg><strong>还没有视频</strong></div>
         <ul id="job-list" class="job-list" aria-label="待处理视频"></ul>
         <div id="notice" class="notice" role="status" aria-live="polite"></div>
