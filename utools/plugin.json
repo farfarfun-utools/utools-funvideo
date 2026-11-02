@@ -1,0 +1,30 @@
+{
+  "pluginName": "视频工坊",
+  "version": "0.1.0",
+  "description": "批量压缩、裁剪、调整尺寸、转换格式和提取音频，本地处理视频",
+  "author": "farfarfun",
+  "main": "index.html",
+  "preload": "preload.js",
+  "logo": "logo.png",
+  "pluginSetting": { "height": 720 },
+  "features": [
+    {
+      "code": "video",
+      "explain": "批量处理本地视频",
+      "cmds": ["视频工坊", "FunVideo", "批量视频", "视频压缩", "视频转换"]
+    },
+    {
+      "code": "video-files",
+      "explain": "将选中的视频加入处理队列",
+      "cmds": [{
+        "type": "files",
+        "label": "用视频工坊处理",
+        "fileType": "file",
+        "extensions": ["mp4", "mov", "mkv", "avi", "webm", "wmv", "flv", "m4v"],
+        "minLength": 1,
+        "maxLength": 100
+      }]
+    }
+  ],
+  "platform": ["darwin", "win32", "linux"]
+}

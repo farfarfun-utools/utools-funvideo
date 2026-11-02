@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#176d66">
+  <title>视频工坊</title>
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <svg class="icons" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="icon-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10H3V7Z"/></symbol>
+    <symbol id="icon-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7V5Z"/></symbol>
+    <symbol id="icon-stop" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2 6M20 4v7h-7"/></symbol>
+    <symbol id="icon-film" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4m-4 6h4m10-6h4m-4 6h4"/></symbol>
+    <symbol id="icon-scissors" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="m8.1 8.1 11.8 11.8M14 10l6-6M8.1 15.9 11 13"/></symbol>
+    <symbol id="icon-scale" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m8 5h3a2 2 0 0 0 2-2v-3M8 12h8"/></symbol>
+    <symbol id="icon-repeat" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4m14-1v2a3 3 0 0 1-3 3H3"/></symbol>
+    <symbol id="icon-audio" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13M9 9l12-2"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+    <symbol id="icon-external" viewBox="0 0 24 24"><path d="M13 5h6v6m0-6-9 9M19 13v6H5V5h6"/></symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24"><path d="m4 12 5 5L20 6"/></symbol>
+  </svg>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand"><img src="logo.svg" alt="" width="38" height="38"><div><h1>视频工坊</h1><span>FunVideo</span></div></div>
+      <div class="top-actions">
+        <button id="add-files" class="button secondary" type="button" data-lock><svg><use href="#icon-plus"/></svg>添加视频</button>
+        <button id="start" class="button primary" type="button" data-lock disabled><svg><use href="#icon-play"/></svg>开始处理</button>
+        <button id="cancel" class="button danger" type="button" hidden><svg><use href="#icon-stop"/></svg>取消</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="settings" aria-label="处理设置">
+        <h2>处理方式</h2>
+        <nav class="operation-list" aria-label="选择处理方式">
+          <button type="button" class="operation active" data-operation="compress" data-lock aria-pressed="true"><svg><use href="#icon-film"/></svg><span>视频压缩</span></button>
+          <button type="button" class="operation" data-operation="trim" data-lock aria-pressed="false"><svg><use href="#icon-scissors"/></svg><span>时长裁剪</span></button>
+          <button type="button" class="operation" data-operation="resize" data-lock aria-pressed="false"><svg><use href="#icon-scale"/></svg><span>调整尺寸</span></button>
+          <button type="button" class="operation" data-operation="convert" data-lock aria-pressed="false"><svg><use href="#icon-repeat"/></svg><span>格式转换</span></button>
+          <button type="button" class="operation" data-operation="audio" data-lock aria-pressed="false"><svg><use href="#icon-audio"/></svg><span>提取音频</span></button>
+        </nav>
+
+        <div class="section-rule"></div>
+        <h2>参数</h2>
+        <fieldset id="options" class="options">
+          <div class="option-group" data-for="compress">
+            <label for="quality">压缩质量</label>
+            <select id="quality"><option value="balanced">均衡</option><option value="small">更小文件</option><option value="high">更清晰</option></select>
+            <p>输出 MP4，保留视频与首条音轨。</p>
+          </div>
+          <div class="option-group" data-for="trim" hidden>
+            <label for="trim-start">开始时间 · 秒</label>
+            <input id="trim-start" type="number" min="0" step="0.1" value="0" inputmode="decimal">
+            <label for="trim-end">结束时间 · 秒</label>
+            <input id="trim-end" type="number" min="0" step="0.1" placeholder="留空表示到视频结尾" inputmode="decimal">
+            <p>对队列中每个视频使用同一时间范围。</p>
+          </div>
+          <div class="option-group" data-for="resize" hidden>
+            <label for="width">输出宽度 · 像素</label>
+            <input id="width" type="number" min="160" max="7680" step="2" value="1280" inputmode="numeric">
+            <p>高度按原画面比例调整为偶数。</p>
+          </div>
+          <div class="option-group" data-for="convert" hidden>
+            <label for="format">输出格式</label>
+            <select id="format"><option value="mp4">MP4 · H.264 / AAC</option><option value="mkv">MKV · H.264 / AAC</option><option value="webm">WebM · VP9 / Opus</option></select>
+          </div>
+          <div class="option-group" data-for="audio" hidden>
+            <p>提取第一条音轨，输出 M4A / AAC。</p>
+          </div>
+        </fieldset>
+
+        <div class="section-rule"></div>
+        <h2>输出位置</h2>
+        <button id="choose-output" class="output-select" type="button" data-lock><svg><use href="#icon-folder"/></svg><span id="output-label">选择文件夹</span></button>
+        <p class="output-note">原文件不会被覆盖。</p>
+      </aside>
+
+      <section class="queue" aria-labelledby="queue-title">
+        <div class="queue-head"><div><h2 id="queue-title">文件队列 <span id="file-count">0</span></h2><p id="queue-summary">等待添加视频</p></div><button id="clear-done" class="text-button" type="button" data-lock hidden>清除已完成</button></div>
+        <div id="empty-state" class="empty-state"><svg><use href="#icon-film"/></svg><strong>还没有视频</strong></div>
+        <ul id="job-list" class="job-list" aria-label="待处理视频"></ul>
+        <div id="notice" class="notice" role="status" aria-live="polite"></div>
+      </section>
+    </main>
+    <footer class="footer"><span>本地处理 · 不上传文件</span><span>由 uTools FFmpeg 扩展执行</span></footer>
+  </div>
+</body>
+</html>
