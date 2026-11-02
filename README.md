@@ -6,7 +6,7 @@
 
 基于 [uTools FFmpeg 扩展](https://www.u-tools.cn/docs/api-reference/ffmpeg.html)的本地批量视频处理插件。支持压缩、时长与画面裁剪、尺寸与格式转换、图片水印、变速、转 GIF、旋转翻转、提取封面、定时抽帧，以及提取音频、静音、调整音量和替换背景音乐。
 
-从 [v0.4.1 Release](https://github.com/farfarfun-utools/utools-funvideo/releases/tag/v0.4.1) 下载 `utools-funvideo-0.4.1.upxs`，导入 uTools 安装。也可在 CI 中下载开发版插件目录。
+从 [v0.4.2 Release](https://github.com/farfarfun-utools/utools-funvideo/releases/tag/v0.4.2) 下载 `utools-funvideo-0.4.2.upxs`，导入 uTools 安装。也可在 CI 中下载开发版插件目录。
 
 本版包含替换背景音乐与 AI/MCP 视频入队工具。
 
