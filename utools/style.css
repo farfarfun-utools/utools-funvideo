@@ -23,3 +23,19 @@
 .nested-option{display:grid;gap:8px;margin-top:7px}
 .settings{scrollbar-color:#bacdc4 transparent}
 @media(max-width:700px){.operation-list{grid-template-columns:repeat(4,minmax(0,1fr))}.operation.active{box-shadow:inset 0 -3px #db6a47}.queue-actions{gap:10px}}
+
+.top-actions{margin-left:auto}
+.icon-button{display:grid;place-items:center;flex:none;width:36px;height:36px;border:1px solid #d4dfda;border-radius:6px;background:#fff;color:#526b62}
+.icon-button:hover:not(:disabled){background:#eef5f1;border-color:#aabfb4;color:#176d66}
+.icon-button svg{width:18px;height:18px}
+.settings-dialog{width:min(420px,calc(100vw - 32px));max-height:calc(100vh - 32px);padding:0;border:1px solid #d8e2db;border-radius:8px;background:#fff;color:#202827;box-shadow:0 20px 60px #13292035}
+.settings-dialog::backdrop{background:#142b2680}
+.dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 20px;border-bottom:1px solid #e6ece8}
+.dialog-head h2{margin:0;font-size:16px;line-height:1.3}
+.dialog-head .icon-button{width:30px;height:30px;border:0;background:transparent}
+.dialog-content{padding:20px}
+.dialog-label{margin-bottom:8px;font-size:12px;font-weight:700;color:#42524e}
+.output-path{min-height:42px;max-height:100px;overflow:auto;overflow-wrap:anywhere;padding:10px 12px;border:1px solid #d7e1dc;border-radius:6px;background:#f7faf8;color:#29443b;font-size:13px}
+.dialog-content .output-note{margin-top:9px;font-size:11px;color:#687671}
+.dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}
+@media(max-width:700px){.topbar{display:grid;grid-template-columns:minmax(0,1fr) 36px;align-items:center}.top-actions{grid-column:1/-1;grid-row:2;width:100%;margin:0}.top-actions .button{flex:1}.topbar>#open-settings{grid-column:2;grid-row:1}}

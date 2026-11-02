@@ -6,6 +6,9 @@ const elements = {
   cancel: document.querySelector('#cancel'),
   output: document.querySelector('#choose-output'),
   outputLabel: document.querySelector('#output-label'),
+  settings: document.querySelector('#settings-dialog'),
+  settingsButton: document.querySelector('#open-settings'),
+  resetOutput: document.querySelector('#reset-output'),
   batchFolder: document.querySelector('#open-batch-folder'),
   clear: document.querySelector('#clear-done'),
   list: document.querySelector('#job-list'),
@@ -211,6 +214,18 @@ document.querySelector('#audio-mode').addEventListener('change', event => {
 elements.add.addEventListener('click', () => {
   try { addFiles(bridge.chooseFiles()) } catch (error) { message(error.message, true) }
 })
+elements.settingsButton.addEventListener('click', () => elements.settings.showModal())
+document.querySelector('#close-settings').addEventListener('click', () => elements.settings.close())
+elements.settings.addEventListener('click', event => {
+  const bounds = elements.settings.getBoundingClientRect()
+  if (event.target === elements.settings && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) elements.settings.close()
+})
+elements.resetOutput.addEventListener('click', () => {
+  outputDir = ''
+  elements.outputLabel.textContent = '首个视频所在目录'
+  elements.outputLabel.title = '首个视频所在目录'
+  elements.resetOutput.disabled = true
+})
 elements.output.addEventListener('click', () => {
   try {
     const selected = bridge.chooseOutput()
@@ -218,7 +233,7 @@ elements.output.addEventListener('click', () => {
     outputDir = selected
     elements.outputLabel.textContent = selected
     elements.outputLabel.title = selected
-    render()
+    elements.resetOutput.disabled = false
   } catch (error) { message(error.message, true) }
 })
 elements.start.addEventListener('click', startBatch)
@@ -234,4 +249,5 @@ else {
   elements.output.disabled = true
   message('请在 uTools 中打开插件以选择和处理本地视频')
 }
+elements.resetOutput.disabled = true
 render()
