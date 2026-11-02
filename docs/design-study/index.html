@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>工坊界面方案对比</title>
+  <style>
+    :root { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; color: #25342f; background: #e8edeb; font-size: 14px; line-height: 1.45; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible { outline: 2px solid #187965; outline-offset: 2px; }
+    svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+    .symbols { position: absolute; width: 0; height: 0; overflow: hidden; }
+    .review { max-width: 1280px; margin: auto; padding: 26px 30px 40px; }
+    .review-head { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
+    .review-head h1 { margin: 0; font-size: 23px; }
+    .review-head p { margin: 4px 0 0; color: #687971; }
+    .review-controls { display: flex; flex-wrap: wrap; gap: 8px; }
+    .review-controls button { min-width: 78px; min-height: 38px; padding: 7px 13px; border: 1px solid #cbd6d0; border-radius: 6px; background: #fff; color: #3e5148; font-weight: 650; }
+    .review-controls button[aria-pressed="true"] { border-color: #1e7163; background: #1e7163; color: #fff; }
+    .review-caption { display: flex; justify-content: space-between; gap: 12px; margin: 0 0 12px; color: #62756b; font-size: 13px; }
+    .review-caption strong { color: #1e4438; }
+    .stage { --accent: #db654c; --accent-ink: #b5412c; --nav: #18352f; --muted: #667970; --border: #dbe4de; --surface: #fff; --subtle: #f3f7f4; display: grid; height: 720px; overflow: hidden; margin-inline: auto; border: 1px solid #cbd6d0; border-radius: 7px; background: var(--surface); box-shadow: 0 10px 32px #263c3030; }
+    .stage.product-video { width: min(900px, 100%); height: 640px; }
+    .stage.product-image { width: min(1140px, 100%); }
+    .product-video .tool { min-height: 27px; }
+    .appbar { display: flex; align-items: center; gap: 20px; min-width: 0; padding: 0 20px; border-bottom: 1px solid var(--border); background: var(--nav); color: #fff; }
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .brand img { width: 34px; height: 34px; object-fit: contain; }
+    .brand strong { display: block; white-space: nowrap; font-size: 17px; line-height: 1.2; }
+    .brand small { display: block; color: #bdd0c6; font-size: 11px; }
+    .appbar-meta { color: #c4d2ca; font-size: 12px; }
+    .header-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+    .icon-button { width: 36px; height: 36px; display: grid; place-items: center; padding: 0; border: 1px solid #ffffff42; border-radius: 5px; background: transparent; color: inherit; }
+    .header-actions .add { display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border: 1px solid #ffffff42; border-radius: 5px; background: #ffffff14; color: #fff; font-weight: 650; }
+    .toolnav { min-width: 0; overflow: auto; border-right: 1px solid var(--border); background: var(--subtle); }
+    .all-groups { padding: 13px 12px; }
+    .group + .group { margin-top: 8px; }
+    .group-heading { display: flex; justify-content: space-between; width: 100%; padding: 7px 9px 5px; border: 0; background: transparent; color: #52685d; text-align: left; font-size: 11px; font-weight: 750; }
+    .group-heading span { color: #81978b; }
+    .group-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+    .tool { display: flex; align-items: center; min-width: 0; min-height: 31px; padding: 5px 8px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: #3e5549; text-align: left; white-space: nowrap; font-size: 12px; font-weight: 600; }
+    .tool.active { border-color: #aed4c2; background: #dceee4; color: #145b49; }
+    .tool:hover { background: #e7f2eb; }
+    .category-tabs, .active-tools { display: none; }
+    .main-area { min-width: 0; overflow: auto; padding: 20px 24px; background: #fff; }
+    .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .section-head h2 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 17px; }
+    .count { min-width: 23px; height: 23px; display: inline-grid; place-items: center; padding: 0 5px; border-radius: 4px; background: #e2f0e9; color: #26715b; font-size: 12px; }
+    .section-head span:last-child { color: var(--muted); font-size: 12px; }
+    .video-list { margin-top: 8px; }
+    .file-row { display: flex; align-items: center; gap: 11px; min-width: 0; height: 52px; border-bottom: 1px solid #ecf0ed; }
+    .file-icon { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 4px; background: #e8f1ec; color: #39816a; }
+    .file-info { min-width: 0; flex: 1; }
+    .file-info strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 680; }
+    .file-info small { color: var(--muted); font-size: 11px; }
+    .file-state { display: flex; align-items: center; gap: 6px; color: #62806f; font-size: 11px; white-space: nowrap; }
+    .file-state::before { width: 6px; height: 6px; border-radius: 50%; background: #80ad8c; content: ''; }
+    .row-remove { display: grid; place-items: center; width: 28px; height: 28px; border: 0; background: transparent; color: #83958a; }
+    .row-remove svg { width: 15px; height: 15px; }
+    .queue-footer { display: flex; align-items: center; gap: 8px; min-height: 44px; color: #507361; font-size: 12px; }
+    .queue-footer svg { width: 15px; height: 15px; }
+    .inspector { min-width: 0; overflow: auto; padding: 20px 18px; border-left: 1px solid var(--border); background: #fff; }
+    .inspector-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 19px; }
+    .inspector h2 { margin: 0; font-size: 16px; }
+    .inspector small { color: var(--muted); font-size: 11px; }
+    .field { margin-bottom: 17px; }
+    .field label { display: block; margin-bottom: 7px; color: #4c6256; font-size: 12px; font-weight: 650; }
+    .fake-select, .fake-input { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 36px; padding: 7px 10px; border: 1px solid #d0ddd4; border-radius: 5px; background: #fff; color: #273d31; font-size: 12px; }
+    .fake-select svg { width: 14px; height: 14px; }
+    .segmented { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 3px; border: 1px solid #d6e3da; border-radius: 5px; background: #f2f6f3; }
+    .segmented span { padding: 7px 2px; border-radius: 4px; color: #647a6c; text-align: center; font-size: 11px; }
+    .segmented span.active { background: #fff; color: #1b5a48; box-shadow: 0 1px 4px #173e2920; font-weight: 700; }
+    .range { height: 5px; position: relative; margin: 18px 3px 11px; border-radius: 10px; background: #dae5dd; }
+    .range::before { width: 68%; height: 100%; display: block; border-radius: inherit; background: #267b64; content: ''; }
+    .range::after { position: absolute; top: -5px; left: 68%; width: 15px; height: 15px; border: 3px solid #fff; border-radius: 50%; background: #267b64; box-shadow: 0 0 0 1px #267b64; content: ''; }
+    .hint { margin-top: 9px; color: var(--muted); font-size: 11px; }
+    .runbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; padding: 0 18px; border-top: 1px solid var(--border); background: #f9fbf9; }
+    .destination { display: flex; align-items: center; gap: 8px; min-width: 0; color: #566d60; font-size: 12px; }
+    .destination span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .run-actions { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
+    .run-actions small { color: #6b7a71; font-size: 11px; }
+    .run-button { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 116px; height: 38px; padding: 0 15px; border: 0; border-radius: 5px; background: var(--accent); color: #fff; font-weight: 700; }
+    .image-main .image-preview { display: flex; align-items: center; justify-content: center; height: 335px; margin: 13px 0; overflow: hidden; border: 1px solid var(--border); border-radius: 5px; background: repeating-conic-gradient(#e8eee9 0 25%, #f7f9f7 0 50%) 50% / 14px 14px; }
+    .image-preview img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
+    .image-actions { display: flex; gap: 4px; align-items: center; }
+    .image-actions span { padding: 5px 8px; border-radius: 4px; color: #597566; font-size: 11px; }
+    .image-actions span.active { background: #e0f1e8; color: #1e7257; font-weight: 700; }
+    .image-list { display: flex; gap: 8px; min-width: 0; }
+    .image-file { display: flex; align-items: center; gap: 7px; min-width: 0; padding: 7px 9px; border: 1px solid var(--border); border-radius: 5px; background: #fafcfa; font-size: 11px; }
+    .image-file svg { width: 15px; height: 15px; color: #4b9075; }
+    .image-file span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .image-file.active { border-color: #79b596; background: #edf8f1; }
+
+    .variant-a { grid-template-columns: 240px minmax(0, 1fr) 230px; grid-template-rows: 57px minmax(0, 1fr) 56px; }
+    .variant-a .appbar { grid-column: 1 / 4; }
+    .variant-a .toolnav { grid-column: 1; grid-row: 2 / 4; }
+    .variant-a .main-area { grid-column: 2; grid-row: 2; }
+    .variant-a .inspector { grid-column: 3; grid-row: 2; }
+    .variant-a .runbar { grid-column: 2 / 4; grid-row: 3; }
+
+    .variant-b { --accent: #d8763f; --nav: #222c29; --subtle: #29342f; --border: #dbe0da; grid-template-columns: minmax(0, 1fr) 265px; grid-template-rows: 57px 113px minmax(0, 1fr) 56px; }
+    .variant-b .appbar { grid-column: 1 / 3; }
+    .variant-b .toolnav { grid-column: 1 / 3; grid-row: 2; display: grid; grid-template-rows: 48px 1fr; overflow: hidden; border-right: 0; background: var(--nav); }
+    .variant-b .all-groups { display: none; }
+    .variant-b .category-tabs { display: flex; align-items: end; gap: 7px; padding: 0 22px; border-top: 1px solid #ffffff1d; }
+    .variant-b .category-tabs button { height: 38px; min-width: 94px; padding: 0 13px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #bdd0c4; font-size: 12px; font-weight: 650; }
+    .variant-b .category-tabs button.active { border-color: #e8b572; color: #fff; }
+    .variant-b .active-tools { display: flex; align-items: center; gap: 7px; padding: 0 23px; overflow-x: auto; border-top: 1px solid #ffffff14; }
+    .variant-b .active-tools .tool { flex: none; min-height: 31px; padding: 5px 12px; border-color: #ffffff2b; background: #ffffff0c; color: #e0e9e2; }
+    .variant-b .active-tools .tool.active { border-color: #e6b16d; background: #e6b16d; color: #2b332e; }
+    .variant-b .main-area { grid-column: 1; grid-row: 3; }
+    .variant-b .inspector { grid-column: 2; grid-row: 3; }
+    .variant-b .runbar { grid-column: 1 / 3; grid-row: 4; }
+    .variant-b .image-main .image-layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(150px, .7fr); gap: 12px; }
+    .variant-b .image-main .image-preview { height: 285px; }
+    .variant-b .image-main .image-list { flex-direction: column; padding-top: 13px; }
+
+    .variant-c { --accent: #b84f39; --nav: #fdfefd; --subtle: #eef4f2; --border: #dae3de; grid-template-columns: 258px minmax(0, 1fr); grid-template-rows: 57px minmax(0, 1fr) 126px 56px; }
+    .variant-c .appbar { grid-column: 1 / 3; color: #24443a; }
+    .variant-c .brand small { color: #76877d; }
+    .variant-c .appbar-meta { color: #75887d; }
+    .variant-c .header-actions .add { border-color: #cddbd2; background: #f4f8f5; color: #315e4b; }
+    .variant-c .icon-button { border-color: #cddbd2; }
+    .variant-c .toolnav { grid-column: 1; grid-row: 2 / 4; display: grid; grid-template-columns: 82px minmax(0, 1fr); overflow: hidden; }
+    .variant-c .all-groups { display: none; }
+    .variant-c .category-tabs { display: grid; align-content: start; gap: 4px; padding: 14px 6px; border-right: 1px solid var(--border); background: #e7efeb; }
+    .variant-c .category-tabs button { display: grid; justify-items: center; gap: 4px; min-height: 60px; padding: 9px 2px; border: 0; border-radius: 5px; background: transparent; color: #587466; font-size: 11px; font-weight: 650; }
+    .variant-c .category-tabs button.active { background: #fff; color: #b44e37; box-shadow: 0 1px 4px #304f3e1d; }
+    .variant-c .category-tabs svg { width: 18px; height: 18px; }
+    .variant-c .active-tools { display: grid; align-content: start; gap: 4px; padding: 16px 12px; }
+    .variant-c .active-tools::before { margin: 0 0 5px 4px; color: #718778; font-size: 11px; font-weight: 700; content: '选择工具'; }
+    .variant-c .active-tools .tool { min-height: 39px; padding: 8px 11px; font-size: 12px; }
+    .variant-c .active-tools .tool.active { border-color: #e7b4a6; background: #fff0eb; color: #a7422e; }
+    .variant-c .main-area { grid-column: 2; grid-row: 2; padding-bottom: 12px; }
+    .variant-c .inspector { grid-column: 2; grid-row: 3; display: flex; align-items: center; gap: 22px; overflow: hidden; padding: 15px 24px; border-top: 1px solid var(--border); border-left: 0; background: #f9fbf9; }
+    .variant-c .inspector-head { width: 125px; flex: none; display: block; margin: 0; }
+    .variant-c .inspector .fields { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+    .variant-c .field { min-width: 145px; max-width: 210px; flex: 1; margin: 0; }
+    .variant-c .field:nth-child(n+3) { display: none; }
+    .variant-c .runbar { grid-column: 1 / 3; grid-row: 4; }
+    .variant-c .image-main .image-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(150px, .6fr); gap: 13px; }
+    .variant-c .image-main .image-preview { height: 300px; }
+    .variant-c .image-main .image-list { flex-direction: column; padding-top: 13px; }
+
+    @media (max-width: 900px) {
+      .review { padding: 16px; }
+      .review-head { align-items: start; flex-direction: column; }
+      .stage, .stage.product-video { height: auto; min-height: 720px; display: flex; flex-direction: column; }
+      .appbar { min-height: 56px; }
+      .appbar-meta { display: none; }
+      .toolnav { width: 100%; max-height: 190px; overflow: auto; border-right: 0; border-bottom: 1px solid var(--border); }
+      .variant-a .all-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .variant-a .group + .group { margin: 0; }
+      .variant-b .toolnav { display: grid; max-height: none; }
+      .variant-c .toolnav { display: grid; grid-template-columns: 80px 1fr; max-height: 220px; }
+      .main-area { min-height: 290px; }
+      .inspector { border-top: 1px solid var(--border); border-left: 0; }
+      .variant-c .inspector { display: block; }
+      .variant-c .inspector-head { width: auto; margin-bottom: 12px; }
+      .runbar { min-height: 56px; }
+    }
+    @media (max-width: 600px) {
+      .review { padding: 12px; }
+      .review-controls button { min-width: 62px; padding-inline: 9px; }
+      .review-caption { flex-direction: column; gap: 2px; }
+      .appbar { padding-inline: 12px; }
+      .brand img { width: 28px; height: 28px; }
+      .brand strong { font-size: 15px; }
+      .header-actions .add { font-size: 12px; }
+      .variant-a .all-groups { grid-template-columns: 1fr 1fr; padding: 8px; }
+      .variant-a .toolnav, .variant-c .toolnav { max-height: none; }
+      .variant-c .toolnav { overflow: visible; }
+      .group-tools { grid-template-columns: 1fr; }
+      .variant-b .category-tabs { gap: 0; padding-inline: 7px; }
+      .variant-b .category-tabs button { min-width: 0; flex: 1; padding-inline: 2px; }
+      .variant-b .active-tools { padding-inline: 8px; }
+      .main-area { padding: 15px 13px; }
+      .inspector { padding: 15px 13px; overflow: visible; }
+      .variant-c .inspector .fields { flex-wrap: wrap; }
+      .image-main .image-preview, .variant-b .image-main .image-preview, .variant-c .image-main .image-preview { height: 220px; }
+      .variant-b .image-main .image-layout, .variant-c .image-main .image-layout { display: block; }
+      .image-list, .variant-b .image-main .image-list, .variant-c .image-main .image-list { flex-direction: row; padding: 0 0 10px; overflow: hidden; }
+      .runbar { padding-inline: 12px; }
+      .run-actions small { display: none; }
+      .run-button { min-width: 94px; }
+    }
+  </style>
+</head>
+<body>
+  <svg class="symbols" aria-hidden="true"><symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="settings" viewBox="0 0 24 24"><path d="M9.7 4.1a2.3 2.3 0 0 1 4.6 0 2.3 2.3 0 0 0 3.3 1.9 2.3 2.3 0 0 1 2.3 4 2.3 2.3 0 0 0 0 3.8 2.3 2.3 0 0 1-2.3 4 2.3 2.3 0 0 0-3.3 1.9 2.3 2.3 0 0 1-4.6 0 2.3 2.3 0 0 0-3.3-1.9 2.3 2.3 0 0 1-2.3-4 2.3 2.3 0 0 0 0-3.8 2.3 2.3 0 0 1 2.3-4 2.3 2.3 0 0 0 3.3-1.9"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol><symbol id="close" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol><symbol id="film" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4m-4 6h4m10-6h4m-4 6h4"/></symbol><symbol id="image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></symbol><symbol id="folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10H3V7Z"/></symbol><symbol id="play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7V5Z"/></symbol><symbol id="check" viewBox="0 0 24 24"><path d="m4 12 5 5L20 6"/></symbol></svg>
+  <div class="review">
+    <div class="review-head"><div><h1>工坊界面方案</h1><p>纯视觉设计稿，可切换方案与插件。</p></div><div class="review-controls" id="review-controls"></div></div>
+    <div class="review-caption"><strong id="variant-name"></strong><span id="variant-caption"></span></div>
+    <div class="stage" id="stage">
+      <header class="appbar"><div class="brand"><img id="brand-logo" alt=""><div><strong id="brand-name"></strong><small id="brand-en"></small></div></div><span class="appbar-meta" id="header-meta"></span><div class="header-actions"><button class="add" type="button"><svg><use href="#plus"/></svg><span id="add-label"></span></button><button class="icon-button" type="button" title="输出设置" aria-label="输出设置"><svg><use href="#settings"/></svg></button></div></header>
+      <nav class="toolnav" aria-label="处理工具"><div class="all-groups" id="all-groups"></div><div class="category-tabs" id="category-tabs"></div><div class="active-tools" id="active-tools"></div></nav>
+      <main class="main-area" id="main-area"></main>
+      <aside class="inspector"><div class="inspector-head"><h2 id="inspector-title"></h2><small id="inspector-meta"></small></div><div class="fields" id="inspector-fields"></div></aside>
+      <footer class="runbar"><div class="destination"><svg><use href="#folder"/></svg><span id="destination"></span></div><div class="run-actions"><small id="run-summary"></small><button class="run-button" type="button"><svg><use href="#play"/></svg>开始处理</button></div></footer>
+    </div>
+  </div>
+  <script>
+    const icon = name => `<svg aria-hidden="true"><use href="#${name}"/></svg>`
+    const products = {
+      video: { name: '视频工坊', en: 'FunVideo', logo: 'assets/video.svg', noun: '视频', icon: 'film', groups: [
+        { name: '常用', icon: 'play', tools: [['compress', '视频压缩'], ['convert', '格式转换'], ['resize', '调整尺寸'], ['speed', '视频变速']] },
+        { name: '裁剪与画面', icon: 'image', tools: [['trim', '时长裁剪'], ['crop', '画面裁剪'], ['rotate', '旋转'], ['flip', '翻转'], ['watermark', '添加水印']] },
+        { name: '提取与导出', icon: 'folder', tools: [['animate', '转为 GIF'], ['cover', '提取封面'], ['frames', '批量抽帧']] },
+        { name: '音频', icon: 'film', tools: [['audio', '音轨处理']] },
+      ] },
+      image: { name: '图片工坊', en: 'FunImage', logo: 'assets/image.svg', noun: '图片', icon: 'image', groups: [
+        { name: '优化与格式', icon: 'play', tools: [['compress', '图片压缩'], ['convert', '格式转换'], ['resize', '修改尺寸']] },
+        { name: '画面调整', icon: 'image', tools: [['crop', '按尺寸裁剪'], ['manualCrop', '手动裁剪'], ['rotate', '旋转'], ['flip', '翻转']] },
+        { name: '外观处理', icon: 'settings', tools: [['watermark', '添加水印'], ['round', '圆角'], ['border', '边框'], ['pad', '补边留白']] },
+        { name: '合并导出', icon: 'folder', tools: [['merge', '合并图片'], ['mergePdf', '合并 PDF'], ['mergeGif', '合并 GIF']] },
+      ] },
+    }
+    const variants = {
+      a: ['A · 工具全览', '所有功能按组常驻左侧，两列工具一眼扫完。'],
+      b: ['B · 双层工具条', '大类常驻顶部，当前大类的功能在第二层完整展开。'],
+      c: ['C · 分类轨道', '左侧分类轨道切换工具组，参数与列表形成上下工作流。'],
+    }
+    const params = {
+      compress: [['压缩质量', 'seg', '更小|均衡|更清晰'], ['目标大小', 'input', '不限制 · KB']],
+      convert: [['输出格式', 'select', 'MP4 · H.264'], ['画质', 'seg', '更小|均衡|更清晰']],
+      resize: [['输出宽度', 'input', '1280 px'], ['缩放方式', 'select', '保持比例']],
+      speed: [['播放速度', 'seg', '0.5×|1×|1.5×'], ['音频', 'select', '同步变速']],
+      trim: [['开始时间', 'input', '00:00:05'], ['结束时间', 'input', '00:00:30']],
+      crop: [['起点 X', 'input', '0 px'], ['起点 Y', 'input', '0 px'], ['宽度', 'input', '1280 px'], ['高度', 'input', '720 px']],
+      manualCrop: [['裁剪区域', 'select', '选择当前图片'], ['比例', 'seg', '自由|1:1|16:9']],
+      rotate: [['旋转角度', 'seg', '90°|180°|270°']],
+      flip: [['方向', 'seg', '水平|垂直']],
+      watermark: [['水印类型', 'seg', '文字|图片'], ['位置', 'select', '右下角'], ['不透明度', 'range', '80%']],
+      animate: [['动图时长', 'input', '5 秒'], ['帧率', 'select', '15 fps']],
+      cover: [['截取时间', 'input', '00:00:03'], ['输出格式', 'select', 'JPEG']],
+      frames: [['抽帧间隔', 'input', '5 秒'], ['最多抽取', 'input', '20 张']],
+      audio: [['音频操作', 'select', '提取音轨'], ['输出格式', 'select', 'M4A']],
+      round: [['圆角半径', 'input', '40 px']],
+      border: [['边框宽度', 'input', '12 px'], ['边框颜色', 'select', '珊瑚红']],
+      pad: [['画布尺寸', 'input', '1600 × 900'], ['背景色', 'select', '白色']],
+      merge: [['拼接方向', 'seg', '纵向|横向'], ['图片间距', 'input', '0 px']],
+      mergePdf: [['页面尺寸', 'select', '跟随原图'], ['排列顺序', 'select', '队列顺序']],
+      mergeGif: [['每帧时长', 'input', '500 ms'], ['动图宽度', 'input', '640 px']],
+    }
+    const descriptions = { compress: '压缩参数', convert: '格式参数', resize: '尺寸参数', speed: '变速参数', trim: '时间范围', crop: '裁剪区域', manualCrop: '裁剪区域', rotate: '旋转方向', flip: '翻转方向', watermark: '水印参数', animate: '动图参数', cover: '封面参数', frames: '抽帧参数', audio: '音轨参数', round: '圆角参数', border: '边框参数', pad: '画布参数', merge: '拼接参数', mergePdf: 'PDF 参数', mergeGif: '动图参数' }
+    const query = new URLSearchParams(location.search)
+    let variant = variants[query.get('variant')] ? query.get('variant') : 'a'
+    let product = products[query.get('product')] ? query.get('product') : 'video'
+    let category = 0
+    let selected = 'compress'
+    const $ = id => document.getElementById(id)
+    function field([label, type, value]) {
+      const control = type === 'seg' ? `<div class="segmented">${value.split('|').map((option, index) => `<span class="${index === 1 ? 'active' : ''}">${option}</span>`).join('')}</div>` : type === 'range' ? `<div class="range"></div><div class="hint">${value}</div>` : `<div class="fake-${type}">${value}${type === 'select' ? icon('chevron') : ''}</div>`
+      return `<div class="field"><label>${label}</label>${control}</div>`
+    }
+    function render() {
+      const data = products[product]
+      $('stage').className = `stage variant-${variant} product-${product}`
+      $('variant-name').textContent = variants[variant][0]
+      $('variant-caption').textContent = variants[variant][1]
+      $('brand-name').textContent = data.name
+      $('brand-en').textContent = data.en
+      $('brand-logo').src = data.logo
+      $('header-meta').textContent = '本地批量处理'
+      $('add-label').textContent = `添加${data.noun}`
+      $('destination').textContent = product === 'video' ? '输出位置：源文件所在目录 / 自动建立批次文件夹' : '输出位置：已设置的文件夹'
+      $('run-summary').textContent = product === 'video' ? '4 个视频待处理' : '3 张图片待处理'
+      $('review-controls').innerHTML = `${Object.keys(variants).map(key => `<button type="button" data-variant="${key}" aria-pressed="${key === variant}">方案 ${key.toUpperCase()}</button>`).join('')}<span style="width:1px;background:#cbd6d0;margin:0 3px"></span>${Object.keys(products).map(key => `<button type="button" data-product="${key}" aria-pressed="${key === product}">${products[key].name}</button>`).join('')}`
+      $('all-groups').innerHTML = data.groups.map((group, index) => `<div class="group"><button type="button" class="group-heading" data-category="${index}">${group.name}<span>${group.tools.length}</span></button><div class="group-tools">${group.tools.map(([id, name]) => `<button type="button" class="tool ${selected === id ? 'active' : ''}" data-tool="${id}" data-group="${index}">${name}</button>`).join('')}</div></div>`).join('')
+      $('category-tabs').innerHTML = data.groups.map((group, index) => `<button type="button" class="${category === index ? 'active' : ''}" data-category="${index}">${icon(group.icon)}<span>${group.name}</span></button>`).join('')
+      $('active-tools').innerHTML = data.groups[category].tools.map(([id, name]) => `<button type="button" class="tool ${selected === id ? 'active' : ''}" data-tool="${id}" data-group="${category}">${name}</button>`).join('')
+      $('inspector-title').textContent = descriptions[selected]
+      $('inspector-meta').textContent = data.groups[category].tools.find(tool => tool[0] === selected)?.[1] || ''
+      const fields = selected === 'compress' && product === 'image' ? [['压缩质量', 'range', '75%'], ['目标大小', 'input', '不限制 · KB']] : selected === 'convert' && product === 'image' ? [['目标格式', 'select', 'WebP'], ['质量', 'range', '85%']] : params[selected] || []
+      $('inspector-fields').innerHTML = fields.map(field).join('')
+      $('main-area').className = `main-area ${product === 'image' ? 'image-main' : ''}`
+      $('main-area').innerHTML = product === 'video' ? `<div class="section-head"><h2>视频队列 <span class="count">4</span></h2><span>清除已完成</span></div><div class="video-list">${[['旅行片段.mp4','01:42 · 1280 × 720 · 84 MB'],['访谈素材.mov','06:18 · 1920 × 1080 · 412 MB'],['展会记录.mp4','03:56 · 1920 × 1080 · 228 MB'],['片尾镜头.webm','00:18 · 1280 × 720 · 12 MB']].map(([name, meta]) => `<div class="file-row"><span class="file-icon">${icon('film')}</span><span class="file-info"><strong>${name}</strong><small>${meta}</small></span><span class="file-state">待处理</span><button class="row-remove" type="button" aria-label="移除">${icon('close')}</button></div>`).join('')}</div><div class="queue-footer">${icon('plus')}拖入或粘贴视频继续添加</div>` : `<div class="section-head"><h2>图片预览 <span class="count">1 / 3</span></h2><div class="image-actions"><span>原图</span><span class="active">效果</span></div></div><div class="image-layout"><div class="image-preview"><img src="assets/landscape.jpg" alt="山谷风景示例图"></div><div class="image-list"><div class="image-file active">${icon('image')}<span>山谷风景.jpg</span></div><div class="image-file">${icon('image')}<span>晨光小径.png</span></div><div class="image-file">${icon('image')}<span>树影近景.webp</span></div></div></div>`
+      document.title = `${variants[variant][0]} · ${data.name}`
+      query.set('variant', variant); query.set('product', product)
+      history.replaceState(null, '', `${location.pathname}?${query}`)
+    }
+    document.addEventListener('click', event => {
+      const target = event.target.closest('[data-variant], [data-product], [data-category], [data-tool]')
+      if (!target) return
+      if (target.dataset.variant) variant = target.dataset.variant
+      if (target.dataset.product) { product = target.dataset.product; category = 0; selected = 'compress' }
+      if (target.dataset.category !== undefined) { category = Number(target.dataset.category); selected = products[product].groups[category].tools[0][0] }
+      if (target.dataset.tool) { selected = target.dataset.tool; category = Number(target.dataset.group) }
+      render()
+    })
+    render()
+  </script>
+</body>
+</html>
