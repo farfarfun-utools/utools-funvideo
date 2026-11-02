@@ -16,7 +16,7 @@
 
 ## 使用
 
-在 uTools 开发者工具中选择 `utools/plugin.json` 导入开发版，或从 GitHub Actions 的 `utools-funvideo-developer-files` 下载完整插件目录后导入。输入“视频工坊”进入，也可在 uTools 中选中视频文件后使用“用视频工坊处理”。添加视频、选择处理方式，然后开始处理；输出位置可从右上角设置另选。首次使用时，uTools 会引导安装 FFmpeg 扩展。
+从 GitHub Actions 下载 `utools-funvideo-developer-files`，再在 uTools 开发者工具中导入其中的 `plugin.json`。输入“视频工坊”进入，也可在 uTools 中选中视频文件后使用“用视频工坊处理”。添加视频、选择处理方式，然后开始处理；输出位置可从右上角设置另选。首次使用时，uTools 会引导安装 FFmpeg 扩展。
 
 任务串行处理，逐项显示进度和错误；可以取消当前任务、重试失败任务。复制视频文件后可在插件页面直接粘贴，文件 URL 或绝对路径文本也可粘贴。每次开始处理会在目标目录下创建精确到秒的 `FunVideo_YYYY-MM-DD_HH-mm-ss` 文件夹，同一秒再次处理自动追加序号。默认目标是本批首个视频所在目录，也可指定统一目标；源文件和已有结果都不会被覆盖。插件不上传视频，不保存文件历史。输出视频保留第一条视频轨和可选的第一条音轨；提取与调节音量需要源文件有音轨。水印使用本地图片；抽帧最多 100 张。转 GIF 默认取开头 5 秒，最长可设为 30 秒。WebM 转换依赖 uTools FFmpeg 扩展中提供 VP9/Opus 编码器，需在目标平台验收。
 
@@ -52,7 +52,7 @@
 
 ## 开发与打包
 
-界面使用原生 HTML/CSS/JavaScript，无前端构建依赖。图标源于 [farfarfun 品牌仓库](https://github.com/farfarfun/.github/tree/master/brand)的统一生成器。`utools/preload.js` 负责文件访问与调用 `utools.runFFmpeg()`，`utools/tasks.js` 负责生成参数。`sh build.sh` 是统一检查入口，运行语法检查、测试并核对打包资源；设置 `RUN_FFMPEG_TEST=1` 时还会运行 FFmpeg 集成测试。GitHub Actions 通过此入口检查插件并调用组织工具打包 UPXS；本工作区不在本机运行构建、测试或打包。
+前端源码在 `src/`，由 Vite 构建到 `utools/dist/`；未构建的仓库不能直接导入 uTools。图标源于 [farfarfun 品牌仓库](https://github.com/farfarfun/.github/tree/master/brand)的统一生成器。`utools/preload.js` 负责文件访问与调用 `utools.runFFmpeg()`，`utools/tasks.js` 负责生成参数。`sh build.sh` 是统一入口，安装锁定依赖、运行检查和测试、构建前端并核对打包资源；设置 `RUN_FFMPEG_TEST=1` 时还会运行 FFmpeg 集成测试。GitHub Actions 通过此入口检查插件并调用组织工具打包 UPXS；本工作区不在本机运行构建、测试或打包。
 
 `identity.json` 记录该插件的官方 ID `zyynr2j3`。组织 Secrets `UTOOLS_MID`、`UTOOLS_UID`、`UTOOLS_CELLPHONE` 可用时，CI 会调用组织现有的 `utools-devtools` 生成 UPXS。不要把私密身份文件提交进仓库。
 
