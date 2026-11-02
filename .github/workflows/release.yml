@@ -31,7 +31,7 @@ jobs:
           }
           JS
       - name: Check plugin
-        run: npm run check
+        run: sh build.sh
       - name: Check FFmpeg processing
         run: |
           if ! command -v ffmpeg >/dev/null; then
