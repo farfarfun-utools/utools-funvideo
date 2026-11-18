@@ -60,6 +60,7 @@ test('video operations produce expected FFmpeg arguments', () => {
   const frames = buildArgs({ input, operation: 'frames', options: { interval: 5, count: 20 } }, '/out/frame_%04d.jpg')
   assert.ok(frames.includes('fps=1/5'))
   assert.equal(outputName(input, 'frames'), '片段_帧.jpg')
+  assert.equal(outputName(input, 'sheet'), '片段_缩略图拼图.jpg')
 })
 
 test('invalid settings are rejected before FFmpeg runs', () => {
@@ -75,5 +76,7 @@ test('invalid settings are rejected before FFmpeg runs', () => {
   assert.throws(() => buildArgs({ input, operation: 'watermark', options: { image: '/tmp/a.txt', width: 180, opacity: 0.8, position: 'center' } }, output), /水印图片/)
   assert.throws(() => buildArgs({ input, operation: 'speed', options: { rate: 3 } }, output), /变速倍数/)
   assert.throws(() => buildArgs({ input, operation: 'frames', options: { interval: 5, count: 101 } }, output), /抽帧/)
+  assert.throws(() => buildArgs({ input, operation: 'sheet', options: { grid: 5, interval: 2 } }, output), /拼图/)
+  assert.throws(() => buildArgs({ input, operation: 'sheet', options: { grid: 3, interval: 0 } }, output), /间隔/)
   assert.equal(outputName(input, 'audio'), '片段_音频.m4a')
 })

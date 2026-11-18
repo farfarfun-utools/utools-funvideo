@@ -18,7 +18,6 @@ const elements = {
   notice: document.querySelector('#notice'),
   options: document.querySelector('#options'),
   operation: document.querySelector('#operation'),
-  operationDescription: document.querySelector('#operation-description'),
 }
 let operation = 'compress'
 let outputDir = ''
@@ -27,7 +26,7 @@ let running = false
 let stopRequested = false
 let watermarkPath = ''
 let musicPath = ''
-const operationNames = { compress: '批量压缩视频', trim: '按时间裁剪', resize: '调整画面尺寸', convert: '转换容器格式', animate: '导出 GIF 动图', transform: '旋转或翻转画面', audio: '提取或调整音频', crop: '裁剪画面区域', watermark: '叠加图片水印', cover: '提取单张封面', speed: '调整播放速度', frames: '定时提取画面' }
+
 
 function icon(name) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
@@ -79,6 +78,9 @@ function render() {
     if (job.status === 'running') {
       const track = document.createElement('div')
       track.className = 'progress-track'
+      track.setAttribute('role', 'progressbar')
+      track.setAttribute('aria-label', job.name)
+      track.setAttribute('aria-valuenow', String(job.progress))
       const fill = document.createElement('div')
       fill.className = 'progress-fill'
       fill.style.width = `${job.progress}%`
@@ -88,7 +90,7 @@ function render() {
     const actions = document.createElement('div')
     actions.className = 'job-actions'
     if (job.status === 'done') actions.append(button('external', () => openOutput(job.output), '打开输出文件'))
-    if (job.status === 'failed' || job.status === 'canceled') actions.append(button('refresh', () => { job.status = 'queued'; job.error = ''; job.progress = 0; render() }, '重新加入队列'))
+    if (!running && (job.status === 'failed' || job.status === 'canceled')) actions.append(button('refresh', () => { job.status = 'queued'; job.error = ''; job.progress = 0; render() }, '重新加入队列'))
     if (!running && job.status !== 'running') actions.append(button('close', () => { jobs.splice(jobs.indexOf(job), 1); render() }, '从队列移除'))
     row.append(marker, body, actions)
     elements.list.append(row)
@@ -100,10 +102,12 @@ function render() {
   elements.empty.hidden = jobs.length > 0
   elements.summary.textContent = jobs.length ? `${queued} 待处理 · ${done} 已完成${failed ? ` · ${failed} 失败` : ''}` : '等待添加视频'
   elements.start.disabled = running || !bridge || !queued
+  elements.start.hidden = running
   elements.clear.hidden = !done
 }
 
 function addFiles(files) {
+  if (!files.length) return
   let added = 0
   for (const file of files) {
     if (jobs.some(job => job.path === file.path)) continue
@@ -167,6 +171,11 @@ function readOptions() {
     }
     case 'cover': return { time: document.querySelector('#cover-time').value }
     case 'speed': return { rate: document.querySelector('#speed-rate').value }
+    case 'sheet': {
+      const interval = Number(document.querySelector('#sheet-interval').value)
+      if (!Number.isFinite(interval) || interval < 0.1 || interval > 3600) throw new Error('采样间隔须在 0.1 至 3600 秒之间')
+      return { grid: Number(document.querySelector('#sheet-grid').value), interval }
+    }
     case 'frames': return { interval: document.querySelector('#frame-interval').value, count: Number(document.querySelector('#frame-count').value) }
     default: return {}
   }
@@ -196,7 +205,7 @@ async function startBatch() {
   elements.batchFolder.title = batchDir
   stopRequested = false
   setRunning(true)
-  message('正在处理视频')
+  message(`正在${elements.operation.selectedOptions[0].textContent}，共 ${pending.length} 个视频`)
   for (const job of pending) {
     if (stopRequested) break
     job.status = 'running'
@@ -216,14 +225,13 @@ async function startBatch() {
     render()
   }
   setRunning(false)
-  message(stopRequested ? '已取消，未开始的任务仍在队列中' : '本轮处理结束')
+  const failed = pending.filter(job => job.status === 'failed').length
+  message(stopRequested ? '已取消，未开始的任务仍在队列中' : `本轮完成 ${pending.length - failed} 个视频${failed ? `，${failed} 个失败` : ''}`, Boolean(failed))
 }
 
 elements.operation.addEventListener('change', () => {
   operation = elements.operation.value
-  elements.operationDescription.textContent = operationNames[operation]
   document.querySelectorAll('[data-for]').forEach(item => { item.hidden = item.dataset.for !== operation })
-  document.querySelector('.workspace').classList.toggle('long-parameters', operation === 'watermark' || (operation === 'audio' && document.querySelector('#audio-mode').value === 'replace'))
   syncToolnav()
 })
 const toolGroups = [...elements.operation.querySelectorAll('optgroup')]
@@ -236,6 +244,7 @@ toolGroups.forEach((group, index) => {
   control.dataset.lock = ''
   control.append(icon(['grid', 'scissors', 'folder', 'audio'][index]), document.createTextNode(group.label))
   control.addEventListener('click', () => {
+    if (group.contains(elements.operation.selectedOptions[0])) return
     elements.operation.value = group.querySelector('option').value
     elements.operation.dispatchEvent(new Event('change'))
   })
@@ -275,7 +284,6 @@ syncToolnav()
 document.querySelector('#audio-mode').addEventListener('change', event => {
   document.querySelector('#gain-setting').hidden = event.target.value !== 'gain'
   document.querySelector('#music-setting').hidden = event.target.value !== 'replace'
-  document.querySelector('.workspace').classList.toggle('long-parameters', event.target.value === 'replace')
 })
 document.querySelector('#choose-watermark').addEventListener('click', () => {
   if (!bridge) return
@@ -297,6 +305,7 @@ elements.add.addEventListener('click', () => {
 })
 document.querySelector('#add-empty').addEventListener('click', () => elements.add.click())
 elements.settingsButton.addEventListener('click', () => elements.settings.showModal())
+document.querySelector('#output-settings').addEventListener('click', () => elements.settings.showModal())
 document.querySelector('#close-settings').addEventListener('click', () => elements.settings.close())
 elements.settings.addEventListener('click', event => {
   const bounds = elements.settings.getBoundingClientRect()

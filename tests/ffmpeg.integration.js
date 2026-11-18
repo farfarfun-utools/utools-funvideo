@@ -43,3 +43,23 @@ test('GIF, rotation and audio gain produce playable outputs', t => {
   ffmpeg(buildArgs({ input: path.join(directory, 'silent.mp4'), operation: 'audio', options: { mode: 'replace', music } }, replaced))
   assert.ok(fs.statSync(replaced).size > 0)
 })
+
+test('contact sheet samples in time order and leaves unused cells black', t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'funvideo-sheet-'))
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }))
+  const input = path.join(directory, 'portrait.mp4')
+  const output = path.join(directory, 'sheet.jpg')
+  ffmpeg(['-v', 'error', '-f', 'lavfi', '-i', 'color=red:s=90x160:r=10:d=0.5',
+    '-f', 'lavfi', '-i', 'color=blue:s=90x160:r=10:d=0.5',
+    '-filter_complex', '[0:v][1:v]concat=n=2:v=1:a=0', '-c:v', 'mpeg4', input])
+  ffmpeg(buildArgs({ input, operation: 'sheet', options: { grid: 2, interval: 0.5 } }, output))
+  const probe = spawnSync('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries',
+    'stream=width,height', '-of', 'csv=p=0', output], { encoding: 'utf8' })
+  assert.equal(probe.stdout.trim(), '640,360')
+  const decoded = spawnSync('ffmpeg', ['-v', 'error', '-i', output, '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'])
+  assert.equal(decoded.status, 0)
+  const pixel = (x, y) => decoded.stdout.subarray((y * 640 + x) * 3, (y * 640 + x) * 3 + 3)
+  assert.ok(pixel(160, 90)[0] > 200 && pixel(480, 90)[2] > 200, 'first row is red then blue')
+  assert.ok(pixel(20, 90).every(value => value < 12), 'portrait has black side margins')
+  assert.ok(pixel(160, 270).every(value => value < 12), 'unused tile is black')
+})

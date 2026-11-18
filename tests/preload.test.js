@@ -120,3 +120,15 @@ test('pasting a file URL adds the video without changing ordinary input paste', 
   listeners.paste({ clipboardData: data, target: { closest: () => ({}) }, preventDefault() {} })
   assert.equal(received, undefined)
 })
+
+test('dropping local videos adds supported files to the queue', t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'funvideo-drop-'))
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }))
+  const pathName = path.join(directory, '旅行.mov')
+  fs.writeFileSync(pathName, 'video')
+  const { api, listeners } = bridge(() => Promise.resolve())
+  const received = []
+  api.onFiles(paths => received.push(...paths))
+  listeners.drop({ type: 'drop', dataTransfer: { files: [{ path: pathName }, { path: '/note.txt' }] }, preventDefault() {} })
+  assert.deepEqual(received, [pathName])
+})
