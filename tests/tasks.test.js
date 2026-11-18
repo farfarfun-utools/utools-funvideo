@@ -25,6 +25,7 @@ test('video operations produce expected FFmpeg arguments', () => {
   assert.ok(!audio.includes('0:v:0'))
 
   const animate = buildArgs({ input, operation: 'animate', options: { fps: 15, width: 480, duration: 5 } }, '/out/result.gif')
+  assert.match(animate[animate.indexOf('-filter_complex') + 1], /^trim=duration=5,fps=/)
   assert.ok(animate.some(arg => arg.includes('palettegen[p]')))
   assert.ok(animate.includes('-loop'))
   assert.equal(outputName(input, 'animate'), '片段_动图.gif')

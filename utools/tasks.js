@@ -67,7 +67,7 @@ function buildArgs(job, output) {
       if (!Number.isInteger(fps) || fps < 1 || fps > 30 || !Number.isInteger(width) || width < 160 || width > 1920 || width % 2 || !Number.isFinite(duration) || duration < 1 || duration > 30) {
         throw new Error('动图帧率、宽度或时长无效')
       }
-      const filter = `fps=${fps},scale=${width}:-2:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse`
+      const filter = `trim=duration=${duration},fps=${fps},scale=${width}:-2:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse`
       args = [...common, '-t', String(duration), '-filter_complex', filter, '-an', '-loop', '0']
       break
     }
