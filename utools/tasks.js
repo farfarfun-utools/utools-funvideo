@@ -2,7 +2,7 @@ const path = require('node:path')
 
 const VIDEO_EXTENSIONS = new Set(['.mp4', '.mov', '.mkv', '.avi', '.webm', '.wmv', '.flv', '.m4v'])
 const MUSIC_EXTENSIONS = new Set(['.mp3', '.m4a', '.wav', '.flac', '.ogg'])
-const OPERATIONS = new Set(['compress', 'trim', 'resize', 'convert', 'animate', 'transform', 'audio', 'crop', 'watermark', 'cover', 'speed', 'frames'])
+const OPERATIONS = new Set(['compress', 'trim', 'resize', 'convert', 'animate', 'transform', 'audio', 'crop', 'watermark', 'cover', 'speed', 'frames', 'sheet'])
 
 function validateInput(input) {
   if (typeof input !== 'string' || !VIDEO_EXTENSIONS.has(path.extname(input).toLowerCase())) {
@@ -14,9 +14,9 @@ function validateInput(input) {
 function outputName(input, operation, options = {}) {
   options = options || {}
   const base = path.basename(input, path.extname(input))
-  const suffix = { compress: '压缩', trim: '裁剪', resize: '尺寸', convert: '转换', animate: '动图', transform: '变换', audio: { extract: '音频', mute: '静音', gain: '音量', replace: '配乐' }[options.mode || 'extract'], crop: '画面裁剪', watermark: '水印', cover: '封面', speed: '变速', frames: '帧' }[operation]
+  const suffix = { compress: '压缩', trim: '裁剪', resize: '尺寸', convert: '转换', animate: '动图', transform: '变换', audio: { extract: '音频', mute: '静音', gain: '音量', replace: '配乐' }[options.mode || 'extract'], crop: '画面裁剪', watermark: '水印', cover: '封面', speed: '变速', frames: '帧', sheet: '缩略图拼图' }[operation]
   if (!suffix) throw new Error('不支持的处理方式')
-  const extension = operation === 'audio' ? (['mute', 'gain', 'replace'].includes(options.mode) ? 'mp4' : 'm4a') : operation === 'animate' ? 'gif' : ['cover', 'frames'].includes(operation) ? 'jpg' : operation === 'convert' ? options.format : 'mp4'
+  const extension = operation === 'audio' ? (['mute', 'gain', 'replace'].includes(options.mode) ? 'mp4' : 'm4a') : operation === 'animate' ? 'gif' : ['cover', 'frames', 'sheet'].includes(operation) ? 'jpg' : operation === 'convert' ? options.format : 'mp4'
   if (!['mp4', 'mkv', 'webm', 'm4a', 'gif', 'jpg'].includes(extension)) throw new Error('不支持的输出格式')
   return `${base}_${suffix}.${extension}`
 }
@@ -67,7 +67,7 @@ function buildArgs(job, output) {
       if (!Number.isInteger(fps) || fps < 1 || fps > 30 || !Number.isInteger(width) || width < 160 || width > 1920 || width % 2 || !Number.isFinite(duration) || duration < 1 || duration > 30) {
         throw new Error('动图帧率、宽度或时长无效')
       }
-      const filter = `fps=${fps},scale=${width}:-2:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse`
+      const filter = `trim=duration=${duration},fps=${fps},scale=${width}:-2:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse`
       args = [...common, '-t', String(duration), '-filter_complex', filter, '-an', '-loop', '0']
       break
     }
@@ -102,6 +102,21 @@ function buildArgs(job, output) {
       const rate = Number(options.rate)
       if (!Number.isFinite(rate) || rate < 0.5 || rate > 2) throw new Error('变速倍数必须在 0.5 至 2 之间')
       args = [...common, ...map, '-vf', `setpts=PTS/${rate}`, '-af', `atempo=${rate}`, ...mp4, '-crf', '23']
+      break
+    }
+    case 'sheet': {
+      const grid = Number(options.grid)
+      const interval = Number(options.interval)
+      if (![2, 3, 4].includes(grid) || !Number.isFinite(interval) || interval < 0.1 || interval > 3600) throw new Error('拼图网格或采样间隔无效')
+      const filters = [
+        `select='isnan(prev_selected_t)+gt(floor((t-start_t)/${interval}),floor((prev_selected_t-start_t)/${interval}))'`,
+        `trim=end_frame=${grid * grid}`,
+        "scale='max(2,trunc(min(320,180*dar)/2)*2)':'max(2,trunc(min(180,320/dar)/2)*2)'",
+        'setsar=1',
+        'pad=320:180:(ow-iw)/2:(oh-ih)/2',
+        `tile=${grid}x${grid}`,
+      ]
+      args = [...common, '-map', '0:v:0', '-vf', filters.join(','), '-frames:v', '1', '-q:v', '2']
       break
     }
     case 'frames': {

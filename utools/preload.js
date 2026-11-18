@@ -19,18 +19,19 @@ utools.onPluginEnter(action => {
   deliverFiles(files)
 })
 
-window.addEventListener?.('paste', event => {
-  const data = event.clipboardData
+function receiveFiles(event) {
+  const data = event.clipboardData || event.dataTransfer
   if (!data) return
   let paths = []
   if (data.files?.length) {
+    if (event.type === 'drop') event.preventDefault()
     const { webUtils } = require('electron')
     paths = [...data.files].map(file => {
       try { return webUtils.getPathForFile(file) }
       catch { return '' }
     }).filter(Boolean)
   }
-  if (!paths.length && !event.target?.closest?.('input, textarea, select, [contenteditable]')) {
+  if (event.type !== 'drop' && !paths.length && !event.target?.closest?.('input, textarea, select, [contenteditable]')) {
     const text = data.getData('text/uri-list') || data.getData('text/plain')
     if (text.length <= 32768) {
       paths = text.split(/\r?\n/).filter(line => line && !line.startsWith('#')).slice(0, 100).map(line => {
@@ -47,6 +48,12 @@ window.addEventListener?.('paste', event => {
     event.preventDefault()
     deliverFiles(videos)
   }
+}
+
+window.addEventListener?.('paste', receiveFiles)
+window.addEventListener?.('drop', receiveFiles)
+window.addEventListener?.('dragover', event => {
+  if (event.dataTransfer?.types.includes('Files')) event.preventDefault()
 })
 
 function checkedFile(file) {

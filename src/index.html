@@ -7,7 +7,6 @@
   <title>视频工坊</title>
   <link rel="icon" href="/logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./style.css">
-  <link rel="stylesheet" href="./workshop.css">
   <script type="module" src="./app.js"></script>
 </head>
 <body>
@@ -40,17 +39,23 @@
 
     <main class="workspace">
       <nav class="toolnav" aria-label="处理工具">
-        <div id="category-rail" class="category-rail" aria-label="工具分类"></div>
-        <div class="tool-panel"><span class="tool-caption">选择工具</span><div id="tool-list" class="tool-list"></div></div>
+        <div id="category-rail" class="category-rail" role="group" aria-label="工具分类"></div>
+        <div id="tool-list" class="tool-list" role="group" aria-label="当前分类的工具"></div>
         <select id="operation" aria-label="处理方式" data-lock hidden>
           <optgroup label="优化与格式"><option value="compress">视频压缩</option><option value="convert">格式转换</option><option value="resize">调整尺寸</option><option value="speed">视频变速</option></optgroup>
           <optgroup label="画面编辑"><option value="trim">时长裁剪</option><option value="crop">画面裁剪</option><option value="transform">旋转翻转</option><option value="watermark">添加水印</option></optgroup>
-          <optgroup label="提取与导出"><option value="animate">转为动图</option><option value="cover">提取封面</option><option value="frames">批量抽帧</option></optgroup>
+          <optgroup label="提取与导出"><option value="animate">转为动图</option><option value="cover">提取封面</option><option value="frames">批量抽帧</option><option value="sheet">缩略图拼图</option></optgroup>
           <optgroup label="音频"><option value="audio">音频处理</option></optgroup>
         </select>
       </nav>
+      <section class="queue" aria-labelledby="queue-title">
+        <div class="queue-head"><div><h2 id="queue-title">文件队列 <span id="file-count">0</span></h2><p id="queue-summary">等待添加视频</p></div><div class="queue-actions"><button id="open-batch-folder" class="text-button" type="button" hidden>打开结果文件夹</button><button id="clear-done" class="text-button" type="button" data-lock hidden>清除已完成</button></div></div>
+        <div id="notice" class="notice" role="status" aria-live="polite"></div>
+        <div id="empty-state" class="empty-state"><svg><use href="#icon-film"/></svg><strong>拖入视频到这里</strong><span>也可粘贴本机视频文件</span><button id="add-empty" class="button secondary" type="button"><svg><use href="#icon-plus"/></svg>添加视频</button></div>
+        <ul id="job-list" class="job-list" aria-label="待处理视频"></ul>
+      </section>
       <aside class="settings" aria-label="处理参数">
-        <div class="settings-heading"><h2>压缩参数</h2><span id="operation-description">批量压缩视频</span></div>
+        <div class="settings-heading"><h2>压缩参数</h2></div>
         <fieldset id="options" class="options">
           <div class="option-group" data-for="compress">
             <label for="quality">压缩质量</label>
@@ -95,18 +100,19 @@
           <div class="option-group" data-for="watermark" hidden><label>水印图片</label><div id="watermark-file" class="file-label">尚未选择</div><button id="choose-watermark" class="button secondary" type="button">选择图片</button><label for="watermark-width">水印宽度 · 像素</label><input id="watermark-width" type="number" min="16" max="2000" value="180"><label for="watermark-opacity">不透明度</label><input id="watermark-opacity" type="range" min="10" max="100" value="80"><label for="watermark-position">位置</label><select id="watermark-position"><option value="bottom-right">右下</option><option value="bottom-left">左下</option><option value="top-right">右上</option><option value="top-left">左上</option><option value="center">居中</option></select></div>
           <div class="option-group" data-for="cover" hidden><label for="cover-time">封面时间 · 秒</label><input id="cover-time" type="number" min="0" step="0.1" value="0"></div>
           <div class="option-group" data-for="speed" hidden><label for="speed-rate">播放速度</label><select id="speed-rate"><option value="0.5">0.5 倍</option><option value="0.75">0.75 倍</option><option value="1.25">1.25 倍</option><option value="1.5">1.5 倍</option><option value="2">2 倍</option></select></div>
+          <div class="option-group" data-for="sheet" hidden>
+            <label for="sheet-grid">拼图布局</label>
+            <select id="sheet-grid"><option value="2">2 × 2 · 4 格</option><option value="3" selected>3 × 3 · 9 格</option><option value="4">4 × 4 · 16 格</option></select>
+            <label for="sheet-interval">采样间隔 · 秒</label>
+            <input id="sheet-interval" type="number" min="0.1" max="3600" step="0.1" value="5" inputmode="decimal">
+            <p>从第一帧开始取样，每个视频生成一张 JPG。视频较短时，剩余格留黑。</p>
+          </div>
           <div class="option-group" data-for="frames" hidden><label for="frame-interval">抽帧间隔 · 秒</label><input id="frame-interval" type="number" min="0.1" max="3600" step="0.1" value="5"><label for="frame-count">最多抽取 · 张</label><input id="frame-count" type="number" min="1" max="100" value="20"></div>
         </fieldset>
 
       </aside>
 
-      <section class="queue" aria-labelledby="queue-title">
-        <div class="queue-head"><div><h2 id="queue-title">文件队列 <span id="file-count">0</span></h2><p id="queue-summary">等待添加视频</p></div><div class="queue-actions"><button id="open-batch-folder" class="text-button" type="button" hidden>打开结果文件夹</button><button id="clear-done" class="text-button" type="button" data-lock hidden>清除已完成</button></div></div>
-        <div id="notice" class="notice" role="status" aria-live="polite"></div>
-        <div id="empty-state" class="empty-state"><svg><use href="#icon-film"/></svg><strong>还没有视频</strong><button id="add-empty" class="button secondary" type="button"><svg><use href="#icon-plus"/></svg>添加视频</button></div>
-        <ul id="job-list" class="job-list" aria-label="待处理视频"></ul>
-      </section>
-      <footer class="runbar"><div class="destination"><svg><use href="#icon-folder"/></svg><span id="footer-output">首个视频所在目录</span></div><div class="run-actions"><button id="start" class="button primary" type="button" data-lock disabled><svg><use href="#icon-play"/></svg>开始处理</button><button id="cancel" class="button danger" type="button" hidden><svg><use href="#icon-stop"/></svg>取消</button></div></footer>
+      <footer class="runbar"><button id="output-settings" class="destination" type="button" data-lock aria-haspopup="dialog" aria-controls="settings-dialog"><svg aria-hidden="true"><use href="#icon-folder"/></svg><span><small>输出位置</small><span id="footer-output">首个视频所在目录</span></span></button><div class="run-actions"><button id="start" class="button primary" type="button" data-lock disabled><svg><use href="#icon-play"/></svg>开始处理</button><button id="cancel" class="button danger" type="button" hidden><svg><use href="#icon-stop"/></svg>取消</button></div></footer>
     </main>
   </div>
   <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title">
