@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#19332d">
+  <meta name="theme-color" content="#141a17">
   <title>视频工坊</title>
   <link rel="icon" href="/logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./style.css">
@@ -26,15 +26,19 @@
     <symbol id="icon-check" viewBox="0 0 24 24"><path d="m4 12 5 5L20 6"/></symbol>
     <symbol id="icon-settings" viewBox="0 0 24 24"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></symbol>
     <symbol id="icon-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+    <symbol id="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+    <symbol id="icon-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></symbol>
+    <symbol id="icon-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></symbol>
   </svg>
 
   <div class="app">
     <header class="topbar">
-      <div class="brand"><img src="/logo.svg" alt="" width="38" height="38"><div><h1>视频工坊</h1><span>FunVideo</span></div></div>
+      <div class="brand"><img src="/logo.svg" alt="" width="36" height="36"><div><h1>视频工坊</h1><span>FunVideo</span></div></div>
       <div class="top-actions">
         <button id="add-files" class="button secondary" type="button" data-lock><svg><use href="#icon-plus"/></svg>添加视频</button>
+        <button id="theme-toggle" class="icon-button" type="button" title="切换外观主题" aria-label="切换外观主题"><svg><use href="#icon-monitor"/></svg></button>
+        <button id="open-settings" class="icon-button" type="button" title="设置" aria-label="设置" aria-haspopup="dialog" aria-controls="settings-dialog" data-lock><svg><use href="#icon-settings"/></svg></button>
       </div>
-      <button id="open-settings" class="icon-button" type="button" title="设置" aria-label="设置" aria-haspopup="dialog" aria-controls="settings-dialog" data-lock><svg><use href="#icon-settings"/></svg></button>
     </header>
 
     <main class="workspace">
@@ -49,9 +53,20 @@
         </select>
       </nav>
       <section class="queue" aria-labelledby="queue-title">
-        <div class="queue-head"><div><h2 id="queue-title">文件队列 <span id="file-count">0</span></h2><p id="queue-summary">等待添加视频</p></div><div class="queue-actions"><button id="open-batch-folder" class="text-button" type="button" hidden>打开结果文件夹</button><button id="clear-done" class="text-button" type="button" data-lock hidden>清除已完成</button></div></div>
+        <div class="queue-head">
+          <div><h2 id="queue-title">文件队列 <span id="file-count">0</span></h2><p id="queue-summary">等待添加视频</p></div>
+          <div class="queue-actions">
+            <button id="open-batch-folder" class="text-button" type="button" hidden>打开结果文件夹</button>
+            <button id="clear-done" class="text-button" type="button" data-lock hidden>清除已完成</button>
+          </div>
+        </div>
         <div id="notice" class="notice" role="status" aria-live="polite"></div>
-        <div id="empty-state" class="empty-state"><svg><use href="#icon-film"/></svg><strong>拖入视频到这里</strong><span>也可粘贴本机视频文件</span><button id="add-empty" class="button secondary" type="button"><svg><use href="#icon-plus"/></svg>添加视频</button></div>
+        <div id="empty-state" class="empty-state">
+          <span class="drop-icon"><svg><use href="#icon-film"/></svg></span>
+          <strong>拖入视频到这里</strong>
+          <span>支持 MP4、MOV、MKV、WebM 等，也可粘贴本机视频文件</span>
+          <button id="add-empty" class="button secondary" type="button"><svg><use href="#icon-plus"/></svg>添加视频</button>
+        </div>
         <ul id="job-list" class="job-list" aria-label="待处理视频"></ul>
       </section>
       <aside class="settings" aria-label="处理参数">
@@ -60,23 +75,30 @@
           <div class="option-group" data-for="compress">
             <label for="quality">压缩质量</label>
             <select id="quality"><option value="balanced">均衡</option><option value="small">更小文件</option><option value="high">更清晰</option></select>
-            <p>输出 MP4，保留视频与首条音轨。</p>
+            <p class="setting-hint">输出 H.264 MP4，保留画面比例与首条音轨。</p>
           </div>
           <div class="option-group" data-for="trim" hidden>
-            <label for="trim-start">开始时间 · 秒</label>
-            <input id="trim-start" type="number" min="0" step="0.1" value="0" inputmode="decimal">
-            <label for="trim-end">结束时间 · 秒</label>
-            <input id="trim-end" type="number" min="0" step="0.1" placeholder="留空表示到视频结尾" inputmode="decimal">
-            <p>对队列中每个视频使用同一时间范围。</p>
+            <div class="field-grid">
+              <div class="field">
+                <label for="trim-start">开始时间 · 秒</label>
+                <input id="trim-start" type="number" min="0" step="0.1" value="0" inputmode="decimal">
+              </div>
+              <div class="field">
+                <label for="trim-end">结束时间 · 秒</label>
+                <input id="trim-end" type="number" min="0" step="0.1" placeholder="至结尾" inputmode="decimal">
+              </div>
+            </div>
+            <p class="setting-hint">对队列中每个视频使用同一时间范围，结束留空则截取到结尾。</p>
           </div>
           <div class="option-group" data-for="resize" hidden>
             <label for="width">输出宽度 · 像素</label>
             <input id="width" type="number" min="160" max="7680" step="2" value="1280" inputmode="numeric">
-            <p>高度按原画面比例调整为偶数。</p>
+            <p class="setting-hint">高度自动按原画面比例计算并对齐为偶数，防止编码失真。</p>
           </div>
           <div class="option-group" data-for="convert" hidden>
             <label for="format">输出格式</label>
             <select id="format"><option value="mp4">MP4 · H.264 / AAC</option><option value="mkv">MKV · H.264 / AAC</option><option value="webm">WebM · VP9 / Opus</option></select>
+            <p class="setting-hint">按目标容器重新封装或转码，兼顾兼容性与体积。</p>
           </div>
           <div class="option-group" data-for="animate" hidden>
             <label for="gif-duration">动图时长 · 秒</label>
@@ -96,23 +118,63 @@
             <div id="gain-setting" class="nested-option" hidden><label for="audio-level">音量倍数</label><input id="audio-level" type="number" min="0.25" max="4" step="0.05" value="1.5" inputmode="decimal"></div>
             <div id="music-setting" class="nested-option" hidden><label>背景音乐</label><div id="music-file" class="file-label">尚未选择</div><button id="choose-music" class="button secondary" type="button">选择音频</button></div>
           </div>
-          <div class="option-group" data-for="crop" hidden><label for="crop-x">起点 X · 像素</label><input id="crop-x" type="number" min="0" step="2" value="0"><label for="crop-y">起点 Y · 像素</label><input id="crop-y" type="number" min="0" step="2" value="0"><label for="crop-width">裁剪宽度 · 像素</label><input id="crop-width" type="number" min="2" step="2" value="1280"><label for="crop-height">裁剪高度 · 像素</label><input id="crop-height" type="number" min="2" step="2" value="720"></div>
-          <div class="option-group" data-for="watermark" hidden><label>水印图片</label><div id="watermark-file" class="file-label">尚未选择</div><button id="choose-watermark" class="button secondary" type="button">选择图片</button><label for="watermark-width">水印宽度 · 像素</label><input id="watermark-width" type="number" min="16" max="2000" value="180"><label for="watermark-opacity">不透明度</label><input id="watermark-opacity" type="range" min="10" max="100" value="80"><label for="watermark-position">位置</label><select id="watermark-position"><option value="bottom-right">右下</option><option value="bottom-left">左下</option><option value="top-right">右上</option><option value="top-left">左上</option><option value="center">居中</option></select></div>
-          <div class="option-group" data-for="cover" hidden><label for="cover-time">封面时间 · 秒</label><input id="cover-time" type="number" min="0" step="0.1" value="0"></div>
-          <div class="option-group" data-for="speed" hidden><label for="speed-rate">播放速度</label><select id="speed-rate"><option value="0.5">0.5 倍</option><option value="0.75">0.75 倍</option><option value="1.25">1.25 倍</option><option value="1.5">1.5 倍</option><option value="2">2 倍</option></select></div>
+          <div class="option-group" data-for="crop" hidden>
+            <div class="field-grid">
+              <div class="field"><label for="crop-x">起点 X · 像素</label><input id="crop-x" type="number" min="0" step="2" value="0"></div>
+              <div class="field"><label for="crop-y">起点 Y · 像素</label><input id="crop-y" type="number" min="0" step="2" value="0"></div>
+              <div class="field"><label for="crop-width">裁剪宽度 · 像素</label><input id="crop-width" type="number" min="2" step="2" value="1280"></div>
+              <div class="field"><label for="crop-height">裁剪高度 · 像素</label><input id="crop-height" type="number" min="2" step="2" value="720"></div>
+            </div>
+            <p class="setting-hint">坐标与尺寸须为偶数，以兼容主流 YUV420 编码器。</p>
+          </div>
+          <div class="option-group" data-for="watermark" hidden>
+            <label>水印图片</label>
+            <div id="watermark-file" class="file-label">尚未选择</div>
+            <button id="choose-watermark" class="button secondary" type="button">选择图片</button>
+            <label for="watermark-width">水印宽度 · 像素</label>
+            <input id="watermark-width" type="number" min="16" max="2000" value="180">
+            <div class="label-row"><label for="watermark-opacity">不透明度</label><output id="watermark-opacity-value" for="watermark-opacity">80%</output></div>
+            <input id="watermark-opacity" type="range" min="10" max="100" value="80">
+            <label for="watermark-position">位置</label>
+            <select id="watermark-position"><option value="bottom-right">右下</option><option value="bottom-left">左下</option><option value="top-right">右上</option><option value="top-left">左上</option><option value="center">居中</option></select>
+          </div>
+          <div class="option-group" data-for="cover" hidden>
+            <label for="cover-time">封面时间 · 秒</label>
+            <input id="cover-time" type="number" min="0" step="0.1" value="0">
+            <p class="setting-hint">在指定时间点截取一帧高质量 JPG 封面图。</p>
+          </div>
+          <div class="option-group" data-for="speed" hidden>
+            <label for="speed-rate">播放速度</label>
+            <select id="speed-rate"><option value="0.5">0.5 倍</option><option value="0.75">0.75 倍</option><option value="1.25">1.25 倍</option><option value="1.5">1.5 倍</option><option value="2">2 倍</option></select>
+            <p class="setting-hint">画面与音频同步变速，保留原始音高。</p>
+          </div>
           <div class="option-group" data-for="sheet" hidden>
             <label for="sheet-grid">拼图布局</label>
             <select id="sheet-grid"><option value="2">2 × 2 · 4 格</option><option value="3" selected>3 × 3 · 9 格</option><option value="4">4 × 4 · 16 格</option></select>
             <label for="sheet-interval">采样间隔 · 秒</label>
             <input id="sheet-interval" type="number" min="0.1" max="3600" step="0.1" value="5" inputmode="decimal">
-            <p>从第一帧开始取样，每个视频生成一张 JPG。视频较短时，剩余格留黑。</p>
+            <p class="setting-hint">从第一帧开始取样，每个视频生成一张 JPG。视频较短时，剩余格留黑。</p>
           </div>
-          <div class="option-group" data-for="frames" hidden><label for="frame-interval">抽帧间隔 · 秒</label><input id="frame-interval" type="number" min="0.1" max="3600" step="0.1" value="5"><label for="frame-count">最多抽取 · 张</label><input id="frame-count" type="number" min="1" max="100" value="20"></div>
+          <div class="option-group" data-for="frames" hidden>
+            <div class="field-grid">
+              <div class="field"><label for="frame-interval">抽帧间隔 · 秒</label><input id="frame-interval" type="number" min="0.1" max="3600" step="0.1" value="5"></div>
+              <div class="field"><label for="frame-count">最多抽取 · 张</label><input id="frame-count" type="number" min="1" max="100" value="20"></div>
+            </div>
+            <p class="setting-hint">按固定间隔顺序输出 JPG 帧图片至结果目录。</p>
+          </div>
         </fieldset>
-
       </aside>
 
-      <footer class="runbar"><button id="output-settings" class="destination" type="button" data-lock aria-haspopup="dialog" aria-controls="settings-dialog"><svg aria-hidden="true"><use href="#icon-folder"/></svg><span><small>输出位置</small><span id="footer-output">首个视频所在目录</span></span></button><div class="run-actions"><button id="start" class="button primary" type="button" data-lock disabled><svg><use href="#icon-play"/></svg>开始处理</button><button id="cancel" class="button danger" type="button" hidden><svg><use href="#icon-stop"/></svg>取消</button></div></footer>
+      <footer class="runbar">
+        <button id="output-settings" class="destination" type="button" data-lock aria-haspopup="dialog" aria-controls="settings-dialog">
+          <svg aria-hidden="true"><use href="#icon-folder"/></svg>
+          <span class="destination-text"><small>输出位置</small><span id="footer-output">首个视频所在目录</span></span>
+        </button>
+        <div class="run-actions">
+          <button id="start" class="button primary" type="button" data-lock disabled><svg><use href="#icon-play"/></svg>开始处理</button>
+          <button id="cancel" class="button danger" type="button" hidden><svg><use href="#icon-stop"/></svg>取消</button>
+        </div>
+      </footer>
     </main>
   </div>
   <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title">

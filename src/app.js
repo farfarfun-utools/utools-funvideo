@@ -1,5 +1,6 @@
 const bridge = window.funvideo
 const jobs = []
+const THEME_KEY = 'funvideo.theme'
 const elements = {
   add: document.querySelector('#add-files'),
   start: document.querySelector('#start'),
@@ -18,6 +19,7 @@ const elements = {
   notice: document.querySelector('#notice'),
   options: document.querySelector('#options'),
   operation: document.querySelector('#operation'),
+  themeToggle: document.querySelector('#theme-toggle'),
 }
 let operation = 'compress'
 let outputDir = ''
@@ -28,6 +30,18 @@ let watermarkPath = ''
 let musicPath = ''
 const jobNodes = new WeakMap()
 
+const systemDarkQuery = window.matchMedia?.('(prefers-color-scheme: dark)')
+
+function readSavedTheme() {
+  try {
+    const saved = localStorage.getItem(THEME_KEY)
+    return saved === 'light' || saved === 'dark' || saved === 'system' ? saved : 'system'
+  } catch {
+    return 'system'
+  }
+}
+
+let themeMode = readSavedTheme()
 
 function icon(name) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
@@ -36,6 +50,31 @@ function icon(name) {
   svg.append(use)
   svg.setAttribute('aria-hidden', 'true')
   return svg
+}
+
+function applyTheme(mode) {
+  themeMode = mode
+  if (mode === 'light' || mode === 'dark') {
+    document.documentElement.dataset.theme = mode
+  } else {
+    delete document.documentElement.dataset.theme
+  }
+  try { localStorage.setItem(THEME_KEY, mode) } catch { /* ignore storage errors */ }
+  const toggle = elements.themeToggle
+  if (!toggle) return
+  const labels = { system: '跟随系统', light: '浅色主题', dark: '深色主题' }
+  const icons = { system: 'monitor', light: 'sun', dark: 'moon' }
+  const title = `切换外观（当前：${labels[mode]}）`
+  toggle.title = title
+  toggle.setAttribute('aria-label', title)
+  toggle.replaceChildren(icon(icons[mode]))
+}
+
+function cycleTheme() {
+  const isSystemDark = Boolean(systemDarkQuery?.matches)
+  if (themeMode === 'system') applyTheme(isSystemDark ? 'light' : 'dark')
+  else if ((themeMode === 'dark' && !isSystemDark) || (themeMode === 'light' && isSystemDark)) applyTheme(themeMode === 'dark' ? 'light' : 'dark')
+  else applyTheme('system')
 }
 
 function button(iconName, action, title) {
@@ -58,6 +97,11 @@ function formatBytes(size) {
   return size >= 1024 ** 3 ? `${(size / 1024 ** 3).toFixed(1)} GB` : size >= 1024 ** 2 ? `${(size / 1024 ** 2).toFixed(1)} MB` : `${Math.round(size / 1024)} KB`
 }
 
+function extBadgeOf(name) {
+  const match = String(name || '').match(/\.([a-z0-9]{2,5})$/i)
+  return match ? match[1].toUpperCase() : 'VIDEO'
+}
+
 function render() {
   elements.list.replaceChildren()
   for (const job of jobs) {
@@ -71,11 +115,17 @@ function render() {
     const name = document.createElement('strong')
     name.textContent = job.name
     name.title = job.path
-    const detail = document.createElement('span')
+    const metaRow = document.createElement('div')
+    metaRow.className = 'job-meta-row'
+    const ext = document.createElement('span')
+    ext.className = 'job-ext'
+    ext.textContent = extBadgeOf(job.name)
+    const detail = document.createElement('small')
     const labels = { queued: '等待处理', running: `${job.progress}%`, done: '已完成', failed: '处理失败', canceled: '已取消' }
     detail.textContent = `${formatBytes(job.size)} · ${labels[job.status]}${job.error ? ` · ${job.error}` : ''}`
     detail.title = job.error || job.path
-    body.append(name, detail)
+    metaRow.append(ext, detail)
+    body.append(name, metaRow)
     if (job.status === 'running') {
       const track = document.createElement('div')
       track.className = 'progress-track'
@@ -265,6 +315,76 @@ async function startBatch() {
   const failed = pending.filter(job => job.status === 'failed').length
   message(stopRequested ? '已取消，未开始的任务仍在队列中' : `本轮完成 ${pending.length - failed} 个视频${failed ? `，${failed} 个失败` : ''}`, Boolean(failed))
 }
+
+function enhanceSelect(selectId, { cols = 'cols-1', compact = false, descriptions = {} } = {}) {
+  const select = document.getElementById(selectId)
+  if (!select) return
+  select.classList.add('sr-only-select')
+  select.tabIndex = -1
+  const group = document.createElement('div')
+  group.className = `preset-grid ${cols}`
+  group.setAttribute('role', 'group')
+  const label = document.querySelector(`label[for="${selectId}"]`)
+  if (label) group.setAttribute('aria-label', label.textContent)
+  const buttons = [...select.options].map(option => {
+    const card = document.createElement('button')
+    card.type = 'button'
+    card.className = `preset-card${compact ? ' compact' : ''}`
+    card.dataset.value = option.value
+    const [titlePart, subtitlePart] = option.textContent.split(' · ')
+    const title = document.createElement('strong')
+    title.textContent = titlePart
+    card.append(title)
+    const desc = descriptions[option.value] || subtitlePart
+    if (desc) {
+      const sub = document.createElement('small')
+      sub.textContent = desc
+      card.append(sub)
+    }
+    card.addEventListener('click', () => {
+      if (select.value === option.value) return
+      select.value = option.value
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    group.append(card)
+    return card
+  })
+  const sync = () => {
+    for (const card of buttons) {
+      const active = card.dataset.value === select.value
+      card.classList.toggle('active', active)
+      card.setAttribute('aria-pressed', String(active))
+    }
+  }
+  select.addEventListener('change', sync)
+  sync()
+  select.after(group)
+}
+
+enhanceSelect('quality', {
+  cols: 'cols-1',
+  descriptions: {
+    balanced: '画质与体积均衡（CRF 28）',
+    small: '更紧凑体积，适合分享传输',
+    high: '更高码率，保留更多画面细节',
+  },
+})
+enhanceSelect('format', { cols: 'cols-1' })
+enhanceSelect('gif-width', { cols: 'cols-3', compact: true, descriptions: { 320: 'px', 480: 'px', 720: 'px' } })
+enhanceSelect('gif-fps', { cols: 'cols-3', compact: true })
+enhanceSelect('direction', { cols: 'cols-2', compact: true })
+enhanceSelect('audio-mode', { cols: 'cols-2' })
+enhanceSelect('watermark-position', { cols: 'cols-3', compact: true })
+enhanceSelect('speed-rate', { cols: 'cols-auto', compact: true })
+enhanceSelect('sheet-grid', { cols: 'cols-3', compact: true })
+
+elements.themeToggle?.addEventListener('click', cycleTheme)
+applyTheme(themeMode)
+
+document.querySelector('#watermark-opacity')?.addEventListener('input', event => {
+  const out = document.querySelector('#watermark-opacity-value')
+  if (out) out.value = `${event.target.value}%`
+})
 
 elements.operation.addEventListener('change', () => {
   operation = elements.operation.value
