@@ -11,7 +11,8 @@ test('video operations produce expected FFmpeg arguments', () => {
   assert.ok(compress.includes('0:a:0?'))
 
   const trim = buildArgs({ input, operation: 'trim', options: { start: 2.5, end: 9 } }, output)
-  assert.deepEqual(trim.slice(trim.indexOf('-ss'), trim.indexOf('-ss') + 4), ['-ss', '2.5', '-t', '6.5'])
+  assert.ok(trim.indexOf('-ss') < trim.indexOf('-i'), 'trim should use fast input seeking (-ss before -i)')
+  assert.deepEqual(trim.slice(trim.indexOf('-ss'), trim.indexOf('-ss') + 6), ['-ss', '2.5', '-i', input, '-t', '6.5'])
 
   const resize = buildArgs({ input, operation: 'resize', options: { width: 1280 } }, output)
   assert.deepEqual(resize.slice(resize.indexOf('-vf'), resize.indexOf('-vf') + 2), ['-vf', 'scale=1280:-2'])
@@ -52,6 +53,7 @@ test('video operations produce expected FFmpeg arguments', () => {
   assert.ok(watermark.includes('/images/logo.png'))
   assert.ok(watermark.some(arg => arg.includes('overlay=W-w-24:H-h-24')))
   const cover = buildArgs({ input, operation: 'cover', options: { time: 2 } }, '/out/cover.jpg')
+  assert.ok(cover.indexOf('-ss') < cover.indexOf('-i'), 'cover should use fast input seeking (-ss before -i)')
   assert.ok(cover.includes('-frames:v'))
   assert.equal(outputName(input, 'cover'), '片段_封面.jpg')
   const speed = buildArgs({ input, operation: 'speed', options: { rate: 1.5 } }, output)
@@ -79,4 +81,22 @@ test('invalid settings are rejected before FFmpeg runs', () => {
   assert.throws(() => buildArgs({ input, operation: 'sheet', options: { grid: 5, interval: 2 } }, output), /拼图/)
   assert.throws(() => buildArgs({ input, operation: 'sheet', options: { grid: 3, interval: 0 } }, output), /间隔/)
   assert.equal(outputName(input, 'audio'), '片段_音频.m4a')
+})
+
+test('rejects relative paths, empty/out-of-range times, and escapes % in image2 output paths', () => {
+  assert.throws(() => outputName('relative.mp4', 'compress'), /视频文件/)
+  assert.throws(() => buildArgs({ input: 'relative.mp4', operation: 'compress', options: { quality: 'balanced' } }, output), /视频文件/)
+  assert.throws(() => buildArgs({ input, operation: 'trim', options: { start: '', end: 5 } }, output), /裁剪时间/)
+  assert.throws(() => buildArgs({ input, operation: 'trim', options: { start: 0, end: 90000 } }, output), /裁剪时间/)
+  assert.throws(() => buildArgs({ input, operation: 'cover', options: { time: '' } }, '/out/cover.jpg'), /封面时间/)
+  assert.throws(() => buildArgs({ input, operation: 'cover', options: { time: 90000 } }, '/out/cover.jpg'), /封面时间/)
+
+  const frames = buildArgs({ input, operation: 'frames', options: { interval: 2, count: 5 } }, '/tmp/100%dir/frame_%04d.jpg')
+  assert.equal(frames.at(-1), '/tmp/100%%dir/frame_%04d.jpg')
+  const cover = buildArgs({ input, operation: 'cover', options: { time: 1 } }, '/tmp/100%dir/cover%1.jpg')
+  assert.ok(cover.includes('-update'))
+  assert.equal(cover.at(-1), '/tmp/100%dir/cover%1.jpg')
+  const sheet = buildArgs({ input, operation: 'sheet', options: { grid: 2, interval: 1 } }, '/tmp/100%dir/sheet.jpg')
+  assert.ok(sheet.includes('-update'))
+  assert.equal(sheet.at(-1), '/tmp/100%dir/sheet.jpg')
 })

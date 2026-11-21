@@ -12,12 +12,20 @@ const source = fs.readFileSync(preloadPath, 'utf8')
 function bridge(runFFmpeg, getPathForFile = file => file.path) {
   const listeners = {}
   const tools = new Map()
+  const opened = []
+  let pluginOutHandler = null
   const window = { addEventListener(name, callback) { listeners[name] = callback } }
-  const utools = { onPluginEnter() {}, runFFmpeg, registerTool: (name, handler) => tools.set(name, handler) }
+  const utools = {
+    onPluginEnter() {},
+    onPluginOut(cb) { pluginOutHandler = cb },
+    runFFmpeg,
+    registerTool: (name, handler) => tools.set(name, handler),
+    shellOpenPath(target) { opened.push(target); return '' },
+  }
   const requireFromPreload = createRequire(preloadPath)
   const requireModule = name => name === 'electron' ? { webUtils: { getPathForFile } } : requireFromPreload(name)
-  vm.runInNewContext(source, { window, utools, require: requireModule }, { filename: preloadPath })
-  return { api: window.funvideo, listeners, tools }
+  vm.runInNewContext(source, { window, utools, require: requireModule, setTimeout, clearTimeout }, { filename: preloadPath })
+  return { api: window.funvideo, listeners, tools, opened, triggerPluginOut: () => pluginOutHandler?.() }
 }
 
 test('AI 加入队列前校验所有视频，不自动执行 FFmpeg', t => {
@@ -131,4 +139,99 @@ test('dropping local videos adds supported files to the queue', t => {
   api.onFiles(paths => received.push(...paths))
   listeners.drop({ type: 'drop', dataTransfer: { files: [{ path: pathName }, { path: '/note.txt' }] }, preventDefault() {} })
   assert.deepEqual(received, [pathName])
+})
+
+test('cancel and onPluginOut terminate active FFmpeg task and clear active state', async t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'funvideo-cancel-'))
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }))
+  const input = path.join(directory, 'clip.mp4')
+  fs.writeFileSync(input, 'source')
+
+  const signals = []
+  let rejectProc
+  const { api, triggerPluginOut } = bridge(() => {
+    const p = new Promise((_resolve, reject) => { rejectProc = reject })
+    p.kill = signal => {
+      signals.push(signal || 'SIGTERM')
+      rejectProc(new Error('killed'))
+    }
+    return p
+  })
+  const batchDir = api.createBatchOutput(directory, input)
+
+  const first = api.runJob({ input, outputDir: batchDir, operation: 'compress', options: { quality: 'balanced' } })
+  assert.equal(api.cancel(), true)
+  await assert.rejects(first, /任务已取消/)
+  assert.deepEqual(signals, ['SIGTERM'])
+
+  const second = api.runJob({ input, outputDir: batchDir, operation: 'compress', options: { quality: 'balanced' } })
+  triggerPluginOut()
+  await assert.rejects(second, /任务已取消/)
+  assert.deepEqual(signals, ['SIGTERM', 'SIGTERM'])
+  assert.equal(api.cancel(), false)
+})
+
+test('image2 operations in directories containing % use safe temp dir and publish outputs', async t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'funvideo-100%dir-'))
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }))
+  const input = path.join(directory, 'clip.mp4')
+  fs.writeFileSync(input, 'source')
+
+  let seenOutputArg = ''
+  const { api } = bridge(args => {
+    seenOutputArg = args.at(-1)
+    if (seenOutputArg.endsWith('frame_%04d.jpg')) {
+      fs.writeFileSync(path.join(path.dirname(seenOutputArg), 'frame_0001.jpg'), 'jpg1')
+    } else {
+      fs.writeFileSync(seenOutputArg, 'jpg-cover')
+    }
+    return Promise.resolve()
+  })
+  const batchDir = api.createBatchOutput(directory, input)
+  const coverOut = await api.runJob({ input, outputDir: batchDir, operation: 'cover', options: { time: 0 } })
+  assert.ok(!path.dirname(seenOutputArg).includes('%'), 'temp dir for image2 should avoid %')
+  assert.equal(path.dirname(coverOut), batchDir)
+  assert.equal(fs.readFileSync(coverOut, 'utf8'), 'jpg-cover')
+
+  const framesOut = await api.runJob({ input, outputDir: batchDir, operation: 'frames', options: { interval: 1, count: 2 } })
+  assert.equal(framesOut, batchDir)
+  assert.equal(fs.readFileSync(path.join(batchDir, 'clip_帧_0001.jpg'), 'utf8'), 'jpg1')
+})
+
+test('rejects relative paths, symlinks, 0-byte files, null queue_videos params, and arbitrary openOutput paths', async t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'funvideo-sec-'))
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }))
+  const real = path.join(directory, 'real.mp4')
+  fs.writeFileSync(real, 'video-bytes')
+  const link = path.join(directory, 'link.mp4')
+  fs.symlinkSync(real, link)
+  const empty = path.join(directory, 'empty.mp4')
+  fs.writeFileSync(empty, '')
+
+  const { api, tools, opened } = bridge(args => {
+    fs.writeFileSync(args.at(-1), 'done')
+    return Promise.resolve()
+  })
+  const tool = tools.get('queue_videos')
+  assert.throws(() => tool(null), /1 至 100/)
+  assert.throws(() => tool(undefined), /1 至 100/)
+  assert.throws(() => api.addFiles(['relative.mp4']), /视频文件/)
+  assert.throws(() => api.addFiles([link]), /符号链接/)
+  assert.throws(() => api.addFiles([empty]), /为空/)
+
+  assert.throws(() => api.openOutput(real), /不存在/)
+  const batchDir = api.createBatchOutput(directory, real)
+  const output = await api.runJob({ input: real, outputDir: batchDir, operation: 'compress', options: { quality: 'balanced' } })
+  api.openOutput(batchDir)
+  api.openOutput(output)
+  assert.deepEqual(opened, [path.resolve(batchDir), path.resolve(output)])
+
+  await assert.rejects(
+    api.runJob({ input: real, outputDir: batchDir, operation: 'watermark', options: { image: path.join(directory, 'missing.png'), width: 100, opacity: 0.8, position: 'center' } }),
+    /水印图片/,
+  )
+  await assert.rejects(
+    api.runJob({ input: real, outputDir: path.join(directory, 'no-such-dir'), operation: 'compress', options: { quality: 'balanced' } }),
+    /输出文件夹/,
+  )
 })

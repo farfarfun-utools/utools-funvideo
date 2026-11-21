@@ -42,6 +42,20 @@ test('GIF, rotation and audio gain produce playable outputs', t => {
   const replaced = path.join(directory, 'replaced.mp4')
   ffmpeg(buildArgs({ input: path.join(directory, 'silent.mp4'), operation: 'audio', options: { mode: 'replace', music } }, replaced))
   assert.ok(fs.statSync(replaced).size > 0)
+
+  const trimmed = path.join(directory, 'trimmed.mp4')
+  ffmpeg(buildArgs({ input, operation: 'trim', options: { start: 0.2, end: 0.8 } }, trimmed))
+  assert.ok(fs.statSync(trimmed).size > 0)
+
+  const percentDir = path.join(directory, '100%dir')
+  fs.mkdirSync(percentDir)
+  const percentCover = path.join(percentDir, 'cover.jpg')
+  ffmpeg(buildArgs({ input, operation: 'cover', options: { time: 0.1 } }, percentCover))
+  assert.ok(fs.statSync(percentCover).size > 0)
+
+  const percentFrames = path.join(percentDir, 'frame_%04d.jpg')
+  ffmpeg(buildArgs({ input, operation: 'frames', options: { interval: 0.3, count: 2 } }, percentFrames))
+  assert.equal(fs.readdirSync(percentDir).filter(file => /^frame_\d{4}\.jpg$/.test(file)).length, 2)
 })
 
 test('contact sheet samples in time order and leaves unused cells black', t => {

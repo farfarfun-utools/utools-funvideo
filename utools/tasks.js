@@ -3,15 +3,30 @@ const path = require('node:path')
 const VIDEO_EXTENSIONS = new Set(['.mp4', '.mov', '.mkv', '.avi', '.webm', '.wmv', '.flv', '.m4v'])
 const MUSIC_EXTENSIONS = new Set(['.mp3', '.m4a', '.wav', '.flac', '.ogg'])
 const OPERATIONS = new Set(['compress', 'trim', 'resize', 'convert', 'animate', 'transform', 'audio', 'crop', 'watermark', 'cover', 'speed', 'frames', 'sheet'])
+const MAX_TIME_SECONDS = 86400
+
+function parseNumber(value) {
+  if (typeof value === 'number') return value
+  if (typeof value === 'string' && value.trim() !== '') return Number(value)
+  return Number.NaN
+}
+
+function escapeFramesDir(output) {
+  if (typeof output !== 'string' || !output.includes('%')) return output
+  const dir = path.dirname(output)
+  const base = path.basename(output)
+  return path.join(dir.replace(/%/g, '%%'), base)
+}
 
 function validateInput(input) {
-  if (typeof input !== 'string' || !VIDEO_EXTENSIONS.has(path.extname(input).toLowerCase())) {
+  if (typeof input !== 'string' || !path.isAbsolute(input) || !VIDEO_EXTENSIONS.has(path.extname(input).toLowerCase())) {
     throw new Error('请选择受支持的视频文件')
   }
   return input
 }
 
 function outputName(input, operation, options = {}) {
+  validateInput(input)
   options = options || {}
   const base = path.basename(input, path.extname(input))
   const suffix = { compress: '压缩', trim: '裁剪', resize: '尺寸', convert: '转换', animate: '动图', transform: '变换', audio: { extract: '音频', mute: '静音', gain: '音量', replace: '配乐' }[options.mode || 'extract'], crop: '画面裁剪', watermark: '水印', cover: '封面', speed: '变速', frames: '帧', sheet: '缩略图拼图' }[operation]
@@ -39,16 +54,16 @@ function buildArgs(job, output) {
       break
     }
     case 'trim': {
-      const start = Number(options.start)
-      const end = options.end === '' || options.end == null ? null : Number(options.end)
-      if (!Number.isFinite(start) || start < 0 || (end !== null && (!Number.isFinite(end) || end <= start))) {
-        throw new Error('裁剪时间必须为非负秒数，结束时间须晚于开始时间')
+      const start = parseNumber(options.start)
+      const end = options.end === '' || options.end == null || (typeof options.end === 'string' && options.end.trim() === '') ? null : parseNumber(options.end)
+      if (!Number.isFinite(start) || start < 0 || start > MAX_TIME_SECONDS || (end !== null && (!Number.isFinite(end) || end <= start || end > MAX_TIME_SECONDS))) {
+        throw new Error('裁剪时间必须为 0 至 86400 之间的秒数，结束时间须晚于开始时间')
       }
-      args = [...common, '-ss', String(start), ...(end === null ? [] : ['-t', String(end - start)]), ...map, ...mp4, '-crf', '23']
+      args = ['-hide_banner', '-n', '-ss', String(start), '-i', input, ...(end === null ? [] : ['-t', String(end - start)]), ...map, ...mp4, '-crf', '23']
       break
     }
     case 'resize': {
-      const width = Number(options.width)
+      const width = parseNumber(options.width)
       if (!Number.isInteger(width) || width < 160 || width > 7680 || width % 2) throw new Error('宽度必须是 160 至 7680 的偶数')
       args = [...common, ...map, '-vf', `scale=${width}:-2`, ...mp4, '-crf', '23']
       break
@@ -61,9 +76,9 @@ function buildArgs(job, output) {
       break
     }
     case 'animate': {
-      const fps = Number(options.fps)
-      const width = Number(options.width)
-      const duration = Number(options.duration)
+      const fps = parseNumber(options.fps)
+      const width = parseNumber(options.width)
+      const duration = parseNumber(options.duration)
       if (!Number.isInteger(fps) || fps < 1 || fps > 30 || !Number.isInteger(width) || width < 160 || width > 1920 || width % 2 || !Number.isFinite(duration) || duration < 1 || duration > 30) {
         throw new Error('动图帧率、宽度或时长无效')
       }
@@ -93,20 +108,20 @@ function buildArgs(job, output) {
       break
     }
     case 'cover': {
-      const time = Number(options.time)
-      if (!Number.isFinite(time) || time < 0) throw new Error('封面时间必须是非负秒数')
-      args = [...common, '-ss', String(time), '-map', '0:v:0', '-frames:v', '1', '-q:v', '2']
+      const time = parseNumber(options.time)
+      if (!Number.isFinite(time) || time < 0 || time > MAX_TIME_SECONDS) throw new Error('封面时间必须为 0 至 86400 之间的秒数')
+      args = ['-hide_banner', '-n', '-ss', String(time), '-i', input, '-map', '0:v:0', '-frames:v', '1', '-update', '1', '-q:v', '2']
       break
     }
     case 'speed': {
-      const rate = Number(options.rate)
+      const rate = parseNumber(options.rate)
       if (!Number.isFinite(rate) || rate < 0.5 || rate > 2) throw new Error('变速倍数必须在 0.5 至 2 之间')
       args = [...common, ...map, '-vf', `setpts=PTS/${rate}`, '-af', `atempo=${rate}`, ...mp4, '-crf', '23']
       break
     }
     case 'sheet': {
-      const grid = Number(options.grid)
-      const interval = Number(options.interval)
+      const grid = parseNumber(options.grid)
+      const interval = parseNumber(options.interval)
       if (![2, 3, 4].includes(grid) || !Number.isFinite(interval) || interval < 0.1 || interval > 3600) throw new Error('拼图网格或采样间隔无效')
       const filters = [
         `select='isnan(prev_selected_t)+gt(floor((t-start_t)/${interval}),floor((prev_selected_t-start_t)/${interval}))'`,
@@ -116,12 +131,12 @@ function buildArgs(job, output) {
         'pad=320:180:(ow-iw)/2:(oh-ih)/2',
         `tile=${grid}x${grid}`,
       ]
-      args = [...common, '-map', '0:v:0', '-vf', filters.join(','), '-frames:v', '1', '-q:v', '2']
+      args = [...common, '-map', '0:v:0', '-vf', filters.join(','), '-frames:v', '1', '-update', '1', '-q:v', '2']
       break
     }
     case 'frames': {
-      const interval = Number(options.interval)
-      const count = Number(options.count)
+      const interval = parseNumber(options.interval)
+      const count = parseNumber(options.count)
       if (!Number.isFinite(interval) || interval < 0.1 || interval > 3600 || !Number.isInteger(count) || count < 1 || count > 100) throw new Error('抽帧间隔或数量无效')
       args = [...common, '-map', '0:v:0', '-vf', `fps=1/${interval}`, '-frames:v', String(count), '-q:v', '2']
       break
@@ -131,7 +146,7 @@ function buildArgs(job, output) {
       if (mode === 'extract') args = [...common, '-map', '0:a:0', '-vn', '-c:a', 'aac', '-b:a', '192k']
       else if (mode === 'mute') args = [...common, '-map', '0:v:0', '-an', ...mp4, '-crf', '23']
       else if (mode === 'gain') {
-        const level = Number(options.level)
+        const level = parseNumber(options.level)
         if (!Number.isFinite(level) || level < 0.25 || level > 4) throw new Error('音量倍数必须在 0.25 至 4 之间')
         args = [...common, '-map', '0:v:0', '-map', '0:a:0', '-af', `volume=${level}`, ...mp4, '-crf', '23']
       } else if (mode === 'replace') {
@@ -142,7 +157,8 @@ function buildArgs(job, output) {
       break
     }
   }
-  return [...args, output]
+  const finalOutput = job.operation === 'frames' ? escapeFramesDir(output) : output
+  return [...args, finalOutput]
 }
 
 module.exports = { VIDEO_EXTENSIONS, MUSIC_EXTENSIONS, validateInput, outputName, buildArgs }

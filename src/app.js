@@ -26,6 +26,7 @@ let running = false
 let stopRequested = false
 let watermarkPath = ''
 let musicPath = ''
+const jobNodes = new WeakMap()
 
 
 function icon(name) {
@@ -86,12 +87,15 @@ function render() {
       fill.style.width = `${job.progress}%`
       track.append(fill)
       body.append(track)
+      jobNodes.set(job, { detail, track, fill })
+    } else {
+      jobNodes.delete(job)
     }
     const actions = document.createElement('div')
     actions.className = 'job-actions'
     if (job.status === 'done') actions.append(button('external', () => openOutput(job.output), '打开输出文件'))
-    if (!running && (job.status === 'failed' || job.status === 'canceled')) actions.append(button('refresh', () => { job.status = 'queued'; job.error = ''; job.progress = 0; render() }, '重新加入队列'))
-    if (!running && job.status !== 'running') actions.append(button('close', () => { jobs.splice(jobs.indexOf(job), 1); render() }, '从队列移除'))
+    if (!running && (job.status === 'failed' || job.status === 'canceled')) actions.append(button('refresh', () => { if (running) return; job.status = 'queued'; job.error = ''; job.progress = 0; render() }, '重新加入队列'))
+    if (!running && job.status !== 'running') actions.append(button('close', () => { if (running) return; jobs.splice(jobs.indexOf(job), 1); render() }, '从队列移除'))
     row.append(marker, body, actions)
     elements.list.append(row)
   }
@@ -104,9 +108,22 @@ function render() {
   elements.start.disabled = running || !bridge || !queued
   elements.start.hidden = running
   elements.clear.hidden = !done
+  elements.clear.disabled = running
+}
+
+function updateJobProgress(job, rawPercent) {
+  const next = Math.max(0, Math.min(100, Math.round(rawPercent || 0)))
+  if (next === job.progress) return
+  job.progress = next
+  const nodes = jobNodes.get(job)
+  if (!nodes) return
+  nodes.detail.textContent = `${formatBytes(job.size)} · ${next}%`
+  nodes.track.setAttribute('aria-valuenow', String(next))
+  nodes.fill.style.width = `${next}%`
 }
 
 function addFiles(files) {
+  if (running) { message('正在处理视频，请等待完成后再添加', true); return }
   if (!files.length) return
   let added = 0
   for (const file of files) {
@@ -131,10 +148,12 @@ function readOptions() {
   switch (operation) {
     case 'compress': return { quality: document.querySelector('#quality').value }
     case 'trim': {
-      const start = document.querySelector('#trim-start').value
-      const end = document.querySelector('#trim-end').value
-      if (start === '' || !Number.isFinite(Number(start)) || Number(start) < 0 || (end !== '' && (!Number.isFinite(Number(end)) || Number(end) <= Number(start)))) throw new Error('请检查裁剪时间')
-      return { start, end }
+      const startText = document.querySelector('#trim-start').value.trim()
+      const endText = document.querySelector('#trim-end').value.trim()
+      const start = startText === '' ? Number.NaN : Number(startText)
+      const end = endText === '' ? null : Number(endText)
+      if (!Number.isFinite(start) || start < 0 || start > 86400 || (end !== null && (!Number.isFinite(end) || end <= start || end > 86400))) throw new Error('请检查裁剪时间（0 至 86400 秒）')
+      return { start, end: endText }
     }
     case 'resize': {
       const width = Number(document.querySelector('#width').value)
@@ -169,14 +188,33 @@ function readOptions() {
       if (!Number.isInteger(width) || width < 16 || width > 2000) throw new Error('水印宽度必须在 16 至 2000 像素之间')
       return { image: watermarkPath, width, opacity: Number(document.querySelector('#watermark-opacity').value) / 100, position: document.querySelector('#watermark-position').value }
     }
-    case 'cover': return { time: document.querySelector('#cover-time').value }
-    case 'speed': return { rate: document.querySelector('#speed-rate').value }
+    case 'cover': {
+      const timeText = document.querySelector('#cover-time').value.trim()
+      const time = timeText === '' ? Number.NaN : Number(timeText)
+      if (!Number.isFinite(time) || time < 0 || time > 86400) throw new Error('封面时间必须为 0 至 86400 之间的秒数')
+      return { time }
+    }
+    case 'speed': {
+      const rateText = document.querySelector('#speed-rate').value.trim()
+      const rate = rateText === '' ? Number.NaN : Number(rateText)
+      if (!Number.isFinite(rate) || rate < 0.5 || rate > 2) throw new Error('变速倍数必须在 0.5 至 2 之间')
+      return { rate }
+    }
     case 'sheet': {
       const interval = Number(document.querySelector('#sheet-interval').value)
       if (!Number.isFinite(interval) || interval < 0.1 || interval > 3600) throw new Error('采样间隔须在 0.1 至 3600 秒之间')
       return { grid: Number(document.querySelector('#sheet-grid').value), interval }
     }
-    case 'frames': return { interval: document.querySelector('#frame-interval').value, count: Number(document.querySelector('#frame-count').value) }
+    case 'frames': {
+      const intervalText = document.querySelector('#frame-interval').value.trim()
+      const countText = document.querySelector('#frame-count').value.trim()
+      const interval = intervalText === '' ? Number.NaN : Number(intervalText)
+      const count = countText === '' ? Number.NaN : Number(countText)
+      if (!Number.isFinite(interval) || interval < 0.1 || interval > 3600 || !Number.isInteger(count) || count < 1 || count > 100) {
+        throw new Error('抽帧间隔须在 0.1 至 3600 秒之间，数量须为 1 至 100 的整数')
+      }
+      return { interval, count }
+    }
     default: return {}
   }
 }
@@ -213,8 +251,7 @@ async function startBatch() {
     render()
     try {
       job.output = await bridge.runJob({ input: job.path, outputDir: batchDir, operation, options }, progress => {
-        job.progress = Math.max(0, Math.min(100, Math.round(progress.percent || 0)))
-        render()
+        updateJobProgress(job, progress?.percent)
       })
       job.status = 'done'
       job.progress = 100
@@ -301,6 +338,7 @@ document.querySelector('#choose-music').addEventListener('click', () => {
 })
 
 elements.add.addEventListener('click', () => {
+  if (running) return
   try { addFiles(bridge.chooseFiles()) } catch (error) { message(error.message, true) }
 })
 document.querySelector('#add-empty').addEventListener('click', () => elements.add.click())
@@ -332,9 +370,14 @@ elements.output.addEventListener('click', () => {
 elements.start.addEventListener('click', startBatch)
 elements.batchFolder.addEventListener('click', () => openOutput(lastBatchDir))
 elements.cancel.addEventListener('click', () => { stopRequested = true; bridge.cancel(); elements.cancel.disabled = true; message('正在取消任务') })
-elements.clear.addEventListener('click', () => { for (let i = jobs.length - 1; i >= 0; i--) if (jobs[i].status === 'done') jobs.splice(i, 1); render() })
+elements.clear.addEventListener('click', () => { if (running) return; for (let i = jobs.length - 1; i >= 0; i--) if (jobs[i].status === 'done') jobs.splice(i, 1); render() })
+
+window.addEventListener('beforeunload', () => {
+  if (running) bridge?.cancel?.()
+})
 
 if (bridge) bridge.onFiles(paths => {
+  if (running) { message('正在处理视频，请等待完成后再添加', true); return }
   try { addFiles(bridge.addFiles(paths)) } catch (error) { message(error.message, true) }
 })
 else {
