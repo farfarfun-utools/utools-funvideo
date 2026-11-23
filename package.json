@@ -7,6 +7,18 @@
   "private": true,
   "license": "MIT",
   "description": "视频工坊：基于 uTools FFmpeg 扩展的批量视频处理插件",
+  "keywords": [
+    "utools",
+    "utools-plugin",
+    "funvideo",
+    "video",
+    "ffmpeg",
+    "video-compression",
+    "video-editor",
+    "offline",
+    "farfarfun"
+  ],
+  "homepage": "https://farfarfun.github.io/packages/utools-funvideo/",
   "repository": "https://github.com/farfarfun-utools/utools-funvideo",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
