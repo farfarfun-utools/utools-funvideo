@@ -197,6 +197,16 @@ h1, h2, p { margin: 0; }
   border-color: var(--line); font-weight: 680;
   box-shadow: var(--top-highlight), var(--shadow-sm);
 }
+:root[data-theme='dark'] .category-button.active {
+  background: var(--surface-hover);
+  border-color: var(--line-strong);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .category-button.active {
+    background: var(--surface-hover);
+    border-color: var(--line-strong);
+  }
+}
 
 .tool-list { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px; }
 .tool-button {
@@ -238,7 +248,7 @@ h2 { font-size: 15px; font-weight: 700; line-height: 1.35; }
   border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 7px;
   background: var(--panel); color: var(--muted); font-size: 12.5px;
 }
-.notice:empty, .queue-actions:has(> [hidden]:first-child + [hidden]:last-child) { display: none; }
+.notice:empty, .queue-actions:not(:has(> :not([hidden]))) { display: none; }
 .notice.error { color: var(--error); background: var(--error-bg); border-color: rgba(192, 57, 43, 0.25); border-left-color: var(--danger); }
 
 .empty-state {
@@ -428,6 +438,14 @@ h2 { font-size: 15px; font-weight: 700; line-height: 1.35; }
 .run-actions { flex: none; }
 .run-actions .button { padding-inline: 18px; }
 
+.drop-overlay {
+  position: fixed; inset: 12px; z-index: 20;
+  display: grid; place-items: center;
+  border: 2px dashed var(--accent); border-radius: 16px;
+  background: rgba(27, 107, 88, 0.14); backdrop-filter: blur(6px);
+  color: var(--accent); font-size: 20px; font-weight: 700; pointer-events: none;
+}
+
 .settings-dialog {
   width: min(430px, calc(100% - 28px)); max-height: 90vh; padding: 0;
   border: 1px solid var(--line-strong); border-radius: 14px;
@@ -456,4 +474,17 @@ h2 { font-size: 15px; font-weight: 700; line-height: 1.35; }
   .destination-text small { display: none; }
   .runbar { position: fixed; z-index: 5; inset: auto 0 0; margin: 0; padding: 8px 12px max(8px, env(safe-area-inset-bottom)); }
   #footer-output { max-width: 44vw; }
+}
+
+:root.theme-switching *,
+:root.theme-switching *::before,
+:root.theme-switching *::after {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+  }
 }

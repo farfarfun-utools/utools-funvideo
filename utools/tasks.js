@@ -59,7 +59,8 @@ function buildArgs(job, output) {
       if (!Number.isFinite(start) || start < 0 || start > MAX_TIME_SECONDS || (end !== null && (!Number.isFinite(end) || end <= start || end > MAX_TIME_SECONDS))) {
         throw new Error('裁剪时间必须为 0 至 86400 之间的秒数，结束时间须晚于开始时间')
       }
-      args = ['-hide_banner', '-n', '-ss', String(start), '-i', input, ...(end === null ? [] : ['-t', String(end - start)]), ...map, ...mp4, '-crf', '23']
+      const duration = end === null ? null : Number((end - start).toFixed(6))
+      args = ['-hide_banner', '-n', '-ss', String(start), '-i', input, ...(duration === null ? [] : ['-t', String(duration)]), ...map, ...mp4, '-crf', '23']
       break
     }
     case 'resize': {
@@ -93,13 +94,18 @@ function buildArgs(job, output) {
       break
     }
     case 'crop': {
-      const { x, y, width, height } = options
+      const x = parseNumber(options.x)
+      const y = parseNumber(options.y)
+      const width = parseNumber(options.width)
+      const height = parseNumber(options.height)
       if (![x, y, width, height].every(Number.isInteger) || x < 0 || y < 0 || width < 2 || height < 2 || [x, y, width, height].some(value => value % 2)) throw new Error('画面裁剪坐标和尺寸必须是非负偶数，宽高至少为 2')
       args = [...common, ...map, '-vf', `crop=${width}:${height}:${x}:${y}`, ...mp4, '-crf', '23']
       break
     }
     case 'watermark': {
-      const { image, width, opacity, position } = options
+      const { image, position } = options
+      const width = parseNumber(options.width)
+      const opacity = parseNumber(options.opacity)
       if (typeof image !== 'string' || !path.isAbsolute(image) || !['.png', '.jpg', '.jpeg', '.webp'].includes(path.extname(image).toLowerCase())) throw new Error('请选择水印图片')
       if (!Number.isInteger(width) || width < 16 || width > 2000 || !Number.isFinite(opacity) || opacity < 0.1 || opacity > 1) throw new Error('水印尺寸或透明度无效')
       const point = { 'bottom-right': 'W-w-24:H-h-24', 'bottom-left': '24:H-h-24', 'top-right': 'W-w-24:24', 'top-left': '24:24', center: '(W-w)/2:(H-h)/2' }[position]

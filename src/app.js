@@ -12,6 +12,8 @@ const elements = {
   resetOutput: document.querySelector('#reset-output'),
   batchFolder: document.querySelector('#open-batch-folder'),
   clear: document.querySelector('#clear-done'),
+  clearAll: document.querySelector('#clear-all'),
+  dropOverlay: document.querySelector('#drop-overlay'),
   list: document.querySelector('#job-list'),
   empty: document.querySelector('#empty-state'),
   count: document.querySelector('#file-count'),
@@ -52,14 +54,36 @@ function icon(name) {
   return svg
 }
 
-function applyTheme(mode) {
-  themeMode = mode
-  if (mode === 'light' || mode === 'dark') {
-    document.documentElement.dataset.theme = mode
+function resolvedDark(mode = themeMode) {
+  if (mode === 'dark') return true
+  if (mode === 'light') return false
+  return window.utools?.isDarkColors?.() ?? Boolean(systemDarkQuery?.matches)
+}
+
+function syncThemeSurface(instant = false) {
+  const root = document.documentElement
+  if (instant) root.classList.add('theme-switching')
+  if (themeMode === 'light' || themeMode === 'dark') {
+    root.dataset.theme = themeMode
+  } else if (typeof window.utools?.isDarkColors === 'function') {
+    root.dataset.theme = window.utools.isDarkColors() ? 'dark' : 'light'
   } else {
-    delete document.documentElement.dataset.theme
+    delete root.dataset.theme
   }
-  try { localStorage.setItem(THEME_KEY, mode) } catch { /* ignore storage errors */ }
+  const metaTheme = document.querySelector('meta[name="theme-color"]')
+  if (metaTheme) metaTheme.setAttribute('content', resolvedDark() ? '#101513' : '#f3f5f4')
+  if (instant) {
+    void root.offsetWidth
+    root.classList.remove('theme-switching')
+  }
+}
+
+function applyTheme(mode, { persist = true, instant = false } = {}) {
+  themeMode = mode
+  syncThemeSurface(instant)
+  if (persist) {
+    try { localStorage.setItem(THEME_KEY, mode) } catch { /* ignore storage errors */ }
+  }
   const toggle = elements.themeToggle
   if (!toggle) return
   const labels = { system: '跟随系统', light: '浅色主题', dark: '深色主题' }
@@ -71,10 +95,10 @@ function applyTheme(mode) {
 }
 
 function cycleTheme() {
-  const isSystemDark = Boolean(systemDarkQuery?.matches)
-  if (themeMode === 'system') applyTheme(isSystemDark ? 'light' : 'dark')
-  else if ((themeMode === 'dark' && !isSystemDark) || (themeMode === 'light' && isSystemDark)) applyTheme(themeMode === 'dark' ? 'light' : 'dark')
-  else applyTheme('system')
+  const isSystemDark = resolvedDark('system')
+  if (themeMode === 'system') applyTheme(isSystemDark ? 'light' : 'dark', { instant: true })
+  else if ((themeMode === 'dark' && !isSystemDark) || (themeMode === 'light' && isSystemDark)) applyTheme(themeMode === 'dark' ? 'light' : 'dark', { instant: true })
+  else applyTheme('system', { instant: true })
 }
 
 function button(iconName, action, title) {
@@ -144,7 +168,7 @@ function render() {
     const actions = document.createElement('div')
     actions.className = 'job-actions'
     if (job.status === 'done') actions.append(button('external', () => openOutput(job.output), '打开输出文件'))
-    if (!running && (job.status === 'failed' || job.status === 'canceled')) actions.append(button('refresh', () => { if (running) return; job.status = 'queued'; job.error = ''; job.progress = 0; render() }, '重新加入队列'))
+    if (!running && (job.status === 'failed' || job.status === 'canceled')) actions.append(button('refresh', () => { if (running) return; job.status = 'queued'; job.error = ''; job.output = ''; job.progress = 0; render() }, '重新加入队列'))
     if (!running && job.status !== 'running') actions.append(button('close', () => { if (running) return; jobs.splice(jobs.indexOf(job), 1); render() }, '从队列移除'))
     row.append(marker, body, actions)
     elements.list.append(row)
@@ -159,6 +183,10 @@ function render() {
   elements.start.hidden = running
   elements.clear.hidden = !done
   elements.clear.disabled = running
+  if (elements.clearAll) {
+    elements.clearAll.hidden = !jobs.length
+    elements.clearAll.disabled = running
+  }
 }
 
 function updateJobProgress(job, rawPercent) {
@@ -176,13 +204,18 @@ function addFiles(files) {
   if (running) { message('正在处理视频，请等待完成后再添加', true); return }
   if (!files.length) return
   let added = 0
+  let skipped = 0
   for (const file of files) {
-    if (jobs.some(job => job.path === file.path)) continue
+    if (jobs.some(job => job.path === file.path)) { skipped++; continue }
     jobs.push({ ...file, status: 'queued', progress: 0, output: '', error: '' })
     added++
   }
   render()
-  message(added ? `已添加 ${added} 个视频` : '这些视频已在队列中')
+  if (added) {
+    message(skipped ? `已添加 ${added} 个视频（跳过 ${skipped} 个重复）` : `已添加 ${added} 个视频`)
+  } else {
+    message('这些视频已在队列中')
+  }
 }
 
 async function openOutput(file) {
@@ -194,72 +227,72 @@ async function openOutput(file) {
   }
 }
 
+function parseInputNumber(selector) {
+  const raw = document.querySelector(selector).value.trim()
+  return raw === '' ? Number.NaN : Number(raw)
+}
+
 function readOptions() {
   switch (operation) {
     case 'compress': return { quality: document.querySelector('#quality').value }
     case 'trim': {
-      const startText = document.querySelector('#trim-start').value.trim()
+      const start = parseInputNumber('#trim-start')
       const endText = document.querySelector('#trim-end').value.trim()
-      const start = startText === '' ? Number.NaN : Number(startText)
       const end = endText === '' ? null : Number(endText)
       if (!Number.isFinite(start) || start < 0 || start > 86400 || (end !== null && (!Number.isFinite(end) || end <= start || end > 86400))) throw new Error('请检查裁剪时间（0 至 86400 秒）')
       return { start, end: endText }
     }
     case 'resize': {
-      const width = Number(document.querySelector('#width').value)
+      const width = parseInputNumber('#width')
       if (!Number.isInteger(width) || width < 160 || width > 7680 || width % 2) throw new Error('宽度必须是 160 至 7680 的偶数')
       return { width }
     }
     case 'convert': return { format: document.querySelector('#format').value }
     case 'animate': {
-      const duration = Number(document.querySelector('#gif-duration').value)
-      const width = Number(document.querySelector('#gif-width').value)
-      const fps = Number(document.querySelector('#gif-fps').value)
+      const duration = parseInputNumber('#gif-duration')
+      const width = parseInputNumber('#gif-width')
+      const fps = parseInputNumber('#gif-fps')
       if (!Number.isFinite(duration) || duration < 1 || duration > 30) throw new Error('动图时长须在 1 至 30 秒之间')
       return { duration, width, fps }
     }
     case 'transform': return { direction: document.querySelector('#direction').value }
     case 'audio': {
       const mode = document.querySelector('#audio-mode').value
-      const level = Number(document.querySelector('#audio-level').value)
+      const level = parseInputNumber('#audio-level')
       if (mode === 'gain' && (!Number.isFinite(level) || level < 0.25 || level > 4)) throw new Error('音量倍数须在 0.25 至 4 之间')
       if (mode === 'replace' && !musicPath) throw new Error('请先选择背景音乐')
       return { mode, level, music: mode === 'replace' ? musicPath : undefined }
     }
     case 'crop': {
-      const ids = ['crop-x', 'crop-y', 'crop-width', 'crop-height']
-      const [x, y, width, height] = ids.map(id => Number(document.getElementById(id).value))
+      const ids = ['#crop-x', '#crop-y', '#crop-width', '#crop-height']
+      const [x, y, width, height] = ids.map(parseInputNumber)
       if (![x, y, width, height].every(Number.isInteger) || x < 0 || y < 0 || width < 2 || height < 2 || [x, y, width, height].some(value => value % 2)) throw new Error('裁剪坐标与尺寸必须为偶数')
       return { x, y, width, height }
     }
     case 'watermark': {
       if (!watermarkPath) throw new Error('请先选择水印图片')
-      const width = Number(document.querySelector('#watermark-width').value)
+      const width = parseInputNumber('#watermark-width')
       if (!Number.isInteger(width) || width < 16 || width > 2000) throw new Error('水印宽度必须在 16 至 2000 像素之间')
       return { image: watermarkPath, width, opacity: Number(document.querySelector('#watermark-opacity').value) / 100, position: document.querySelector('#watermark-position').value }
     }
     case 'cover': {
-      const timeText = document.querySelector('#cover-time').value.trim()
-      const time = timeText === '' ? Number.NaN : Number(timeText)
+      const time = parseInputNumber('#cover-time')
       if (!Number.isFinite(time) || time < 0 || time > 86400) throw new Error('封面时间必须为 0 至 86400 之间的秒数')
       return { time }
     }
     case 'speed': {
-      const rateText = document.querySelector('#speed-rate').value.trim()
-      const rate = rateText === '' ? Number.NaN : Number(rateText)
+      const rate = parseInputNumber('#speed-rate')
       if (!Number.isFinite(rate) || rate < 0.5 || rate > 2) throw new Error('变速倍数必须在 0.5 至 2 之间')
       return { rate }
     }
     case 'sheet': {
-      const interval = Number(document.querySelector('#sheet-interval').value)
+      const interval = parseInputNumber('#sheet-interval')
       if (!Number.isFinite(interval) || interval < 0.1 || interval > 3600) throw new Error('采样间隔须在 0.1 至 3600 秒之间')
       return { grid: Number(document.querySelector('#sheet-grid').value), interval }
     }
     case 'frames': {
-      const intervalText = document.querySelector('#frame-interval').value.trim()
-      const countText = document.querySelector('#frame-count').value.trim()
-      const interval = intervalText === '' ? Number.NaN : Number(intervalText)
-      const count = countText === '' ? Number.NaN : Number(countText)
+      const interval = parseInputNumber('#frame-interval')
+      const count = parseInputNumber('#frame-count')
       if (!Number.isFinite(interval) || interval < 0.1 || interval > 3600 || !Number.isInteger(count) || count < 1 || count > 100) {
         throw new Error('抽帧间隔须在 0.1 至 3600 秒之间，数量须为 1 至 100 的整数')
       }
@@ -312,8 +345,14 @@ async function startBatch() {
     render()
   }
   setRunning(false)
+  const succeeded = pending.filter(job => job.status === 'done').length
   const failed = pending.filter(job => job.status === 'failed').length
-  message(stopRequested ? '已取消，未开始的任务仍在队列中' : `本轮完成 ${pending.length - failed} 个视频${failed ? `，${failed} 个失败` : ''}`, Boolean(failed))
+  message(
+    stopRequested
+      ? (succeeded ? `已取消（已完成 ${succeeded} 个，未开始的任务仍在队列中）` : '已取消，未开始的任务仍在队列中')
+      : `本轮完成 ${succeeded} 个视频${failed ? `，${failed} 个失败` : ''}`,
+    Boolean(failed),
+  )
 }
 
 function enhanceSelect(selectId, { cols = 'cols-1', compact = false, descriptions = {} } = {}) {
@@ -379,7 +418,8 @@ enhanceSelect('speed-rate', { cols: 'cols-auto', compact: true })
 enhanceSelect('sheet-grid', { cols: 'cols-3', compact: true })
 
 elements.themeToggle?.addEventListener('click', cycleTheme)
-applyTheme(themeMode)
+systemDarkQuery?.addEventListener?.('change', () => { if (themeMode === 'system') syncThemeSurface(true) })
+applyTheme(themeMode, { persist: false })
 
 document.querySelector('#watermark-opacity')?.addEventListener('input', event => {
   const out = document.querySelector('#watermark-opacity-value')
@@ -446,7 +486,7 @@ document.querySelector('#choose-watermark').addEventListener('click', () => {
   if (!bridge) return
   try {
     const selected = bridge.chooseWatermark()
-    if (selected) { watermarkPath = selected; document.querySelector('#watermark-file').textContent = selected; document.querySelector('#watermark-file').title = selected }
+    if (selected) { watermarkPath = selected; document.querySelector('#watermark-file').textContent = selected.split(/[\\/]/).pop(); document.querySelector('#watermark-file').title = selected }
   } catch (error) { message(error.message, true) }
 })
 document.querySelector('#choose-music').addEventListener('click', () => {
@@ -491,6 +531,20 @@ elements.start.addEventListener('click', startBatch)
 elements.batchFolder.addEventListener('click', () => openOutput(lastBatchDir))
 elements.cancel.addEventListener('click', () => { stopRequested = true; bridge.cancel(); elements.cancel.disabled = true; message('正在取消任务') })
 elements.clear.addEventListener('click', () => { if (running) return; for (let i = jobs.length - 1; i >= 0; i--) if (jobs[i].status === 'done') jobs.splice(i, 1); render() })
+elements.clearAll?.addEventListener('click', () => { if (running || !jobs.length) return; jobs.splice(0, jobs.length); render(); message('已清空队列') })
+
+document.addEventListener('dragover', event => {
+  if (!event.dataTransfer?.types.includes('Files')) return
+  event.preventDefault()
+  event.dataTransfer.dropEffect = running ? 'none' : 'copy'
+  if (elements.dropOverlay) elements.dropOverlay.hidden = running
+})
+document.addEventListener('dragleave', event => {
+  if (elements.dropOverlay && (event.clientX <= 0 || event.clientY <= 0)) elements.dropOverlay.hidden = true
+})
+document.addEventListener('drop', () => {
+  if (elements.dropOverlay) elements.dropOverlay.hidden = true
+})
 
 window.addEventListener('beforeunload', () => {
   if (running) bridge?.cancel?.()

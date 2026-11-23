@@ -99,4 +99,10 @@ test('rejects relative paths, empty/out-of-range times, and escapes % in image2 
   const sheet = buildArgs({ input, operation: 'sheet', options: { grid: 2, interval: 1 } }, '/tmp/100%dir/sheet.jpg')
   assert.ok(sheet.includes('-update'))
   assert.equal(sheet.at(-1), '/tmp/100%dir/sheet.jpg')
+
+  const trimFloat = buildArgs({ input, operation: 'trim', options: { start: 2.1, end: 9.3 } }, output)
+  assert.equal(trimFloat[trimFloat.indexOf('-t') + 1], '7.2')
+
+  assert.throws(() => buildArgs({ input, operation: 'crop', options: { x: '', y: 0, width: 1280, height: 720 } }, output), /偶数/)
+  assert.throws(() => buildArgs({ input, operation: 'watermark', options: { image: '/images/logo.png', width: '', opacity: 0.8, position: 'center' } }, output), /水印/)
 })

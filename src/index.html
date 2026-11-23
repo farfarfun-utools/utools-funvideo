@@ -58,6 +58,7 @@
           <div class="queue-actions">
             <button id="open-batch-folder" class="text-button" type="button" hidden>打开结果文件夹</button>
             <button id="clear-done" class="text-button" type="button" data-lock hidden>清除已完成</button>
+            <button id="clear-all" class="text-button" type="button" data-lock hidden>清空队列</button>
           </div>
         </div>
         <div id="notice" class="notice" role="status" aria-live="polite"></div>
@@ -177,6 +178,7 @@
       </footer>
     </main>
   </div>
+  <div id="drop-overlay" class="drop-overlay" hidden>松开以添加视频</div>
   <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title">
     <div class="dialog-head"><h2 id="settings-title">设置</h2><button id="close-settings" class="icon-button" type="button" title="关闭" aria-label="关闭"><svg><use href="#icon-close"/></svg></button></div>
     <div class="dialog-content">
